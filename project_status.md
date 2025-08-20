@@ -34,8 +34,12 @@ ok# PyChessBot - Project Status
 - ✅ **Feature priority**: Start with move parsing and validation
 - ✅ **Test structure**: Mirror source structure in tests/
 
+## New Decisions Made (Continued)
+- ✅ **python-chess integration**: Option 2 - Validation Layer (keep our parser + add position validation)
+- ✅ **Board state tracking**: Needed for chess game functionality
+- ✅ **Code structure approach**: Lean toward procedural when it makes sense and doesn't complicate decisions, otherwise use what feels most comfortable per situation
+
 ## Outstanding Decisions
-- **Code structure**: Functional vs class-based approach - decide per component
 - **UI layout**: Specific PyGame interface design  
 - **Error handling**: Approach for invalid moves and game state errors
 
