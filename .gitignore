@@ -140,3 +140,8 @@ saves/
 logs/
 *.pgn
 *.log
+
+# Claude Code - exclude local settings but allow shared config
+.claude/settings.local.json
+.claude/cache/
+.claude/logs/
