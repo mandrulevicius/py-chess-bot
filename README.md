@@ -158,7 +158,7 @@ This project follows strict Test-Driven Development:
 3. **REFACTOR**: Clean up while keeping tests green
 4. **COMMIT**: Commit working implementation
 
-See [`CLAUDE.md`](CLAUDE.md) for detailed development guidelines.
+See [`CLAUDE.md`](CLAUDE.md) for detailed development guidelines and [`docs/`](docs/) for design documents.
 
 ## 📁 Project Structure
 
@@ -169,6 +169,7 @@ PyChessBot/
 │   ├── ai/                # AI integration  
 │   └── ui/                # User interface
 ├── tests/                 # Test suite
+├── docs/                  # Design documents and development history
 ├── main.py               # Main application
 ├── requirements.txt      # Python dependencies
 ├── CLAUDE.md            # Development guidelines
@@ -195,7 +196,7 @@ This project welcomes contributions! Please:
 4. Ensure all tests pass
 5. Submit a pull request
 
-See [`CLAUDE.md`](CLAUDE.md) for development guidelines and architecture details.
+See [`CLAUDE.md`](CLAUDE.md) for development guidelines and [`docs/`](docs/) for architecture details.
 
 ## 📋 Requirements
 

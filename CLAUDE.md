@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 PyChessBot is a Python-based chess game designed for human vs AI gameplay with educational purposes. The project aims to create a playable chess implementation with a simple but effective AI opponent.
 
-## Core Requirements (from initialDoc.md)
+## Core Requirements (from docs/initialDoc.md)
 
 The project prototype requires:
 - Notation-based move tracking
