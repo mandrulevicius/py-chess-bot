@@ -107,9 +107,27 @@ Development session for creating a Python chess bot with human vs AI gameplay fo
 **User Prompt:** "before we start with code, lets do couple more steps. first, add a .gitignore for the project. Then make the first commit. Then, add methodologies, workflows and conventions to claude.md - we are using Test Driven Development. We are doing red-green-refactor (make it work, make it right, make it fast). Before implementing each feature, we define a set of tests (where they make sense) for it. Then, we make tests pass by adding implementation. Once tests pass, we commit. Then, we do some very basic tidying up. Run tests again, if pass, commit. Before starting a new feature, we consider if we should refactor existing structure to make sure new feature fits in properly - make the change easy, then make the easy change. Continue until finished. Also, prefer procedural over class based approach when it makes sense."
 
 **Claude Response:**
-- Creating .gitignore for Python project
-- Initializing git repository and making first commit
-- Updating CLAUDE.md with TDD methodology and procedural preferences
+- Created .gitignore for Python project
+- Initialized git repository and made first commit  
+- Updated CLAUDE.md with TDD methodology and procedural preferences
+- **Artifacts Created:** `.gitignore`
+
+### 9. Claude Configuration in Git
+
+**User Prompt:** "should we add .claude to .gitignore, or just some specific files?"
+
+**Claude Response:**
+- Analyzed .claude directory - contains settings.local.json with permissions config
+- Recommended excluding local settings but allowing shared config
+- Updated .gitignore and removed local settings from tracking
+
+### 10. Chat History Management Update
+
+**User Prompt:** "I have found out that you do have chatlogs in global folder, so we no longer have to update it ourselves. but I do like the idea of knowing current project state and outstanding decisions, lets move that to a new file and keep it up to date"
+
+**Claude Response:**
+- Moving project state tracking to dedicated file
+- Will maintain current project status and outstanding decisions separately from chat logs
 
 ---
 

@@ -14,25 +14,49 @@ The project prototype requires:
 - Decoupled UI for humans
 - Chess AI - free, simple to implement, but not completely stupid
 
-## Development Commands
+## Development Methodology
 
-Since this is a Python project, these commands will likely be needed:
+This project follows **Test Driven Development (TDD)** with red-green-refactor cycles:
+
+### TDD Workflow
+1. **Red**: Write a failing test for the feature
+2. **Green**: Write minimal code to make the test pass
+3. **Refactor**: Clean up code while keeping tests green
+
+### Development Process
+1. **Before implementing each feature**: Define tests (where they make sense)
+2. **Make tests pass**: Add implementation to satisfy tests
+3. **Commit**: Once tests pass, commit the working code
+4. **Tidy up**: Do basic cleanup and refactoring
+5. **Test again**: Run tests after cleanup
+6. **Commit**: If tests still pass, commit improvements
+7. **Before new features**: Consider refactoring existing structure
+
+### Key Principles
+- **Make the change easy, then make the easy change**
+- **Prefer procedural over class-based approach** when it makes sense
+- **Red-Green-Refactor**: Make it work, make it right, make it fast
+
+## Development Commands
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the main game
-python main.py
+# Run tests (primary development command)
+python -m pytest tests/ -v
 
-# Run tests
-python -m pytest tests/
+# Run tests with coverage
+python -m pytest tests/ --cov=src
 
 # Run a single test file
 python -m pytest tests/test_filename.py
 
 # Run specific test
 python -m pytest tests/test_filename.py::test_function_name
+
+# Run the main game
+python main.py
 
 # Code formatting
 black .

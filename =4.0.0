@@ -1,0 +1,25 @@
+Collecting pytest
+  Downloading pytest-8.4.1-py3-none-any.whl.metadata (7.7 kB)
+Collecting pytest-cov
+  Downloading pytest_cov-6.2.1-py3-none-any.whl.metadata (30 kB)
+Collecting colorama>=0.4 (from pytest)
+  Downloading colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+Collecting iniconfig>=1 (from pytest)
+  Downloading iniconfig-2.1.0-py3-none-any.whl.metadata (2.7 kB)
+Requirement already satisfied: packaging>=20 in c:\users\minda\appdata\roaming\python\python312\site-packages (from pytest) (25.0)
+Collecting pluggy<2,>=1.5 (from pytest)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting pygments>=2.7.2 (from pytest)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Collecting coverage>=7.5 (from coverage[toml]>=7.5->pytest-cov)
+  Downloading coverage-7.10.4-cp312-cp312-win_amd64.whl.metadata (9.2 kB)
+Downloading pytest-8.4.1-py3-none-any.whl (365 kB)
+Downloading pytest_cov-6.2.1-py3-none-any.whl (24 kB)
+Downloading colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+Downloading coverage-7.10.4-cp312-cp312-win_amd64.whl (219 kB)
+Downloading iniconfig-2.1.0-py3-none-any.whl (6.0 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ---------------------------------------- 1.2/1.2 MB 1.5 MB/s eta 0:00:00
+Installing collected packages: pygments, pluggy, iniconfig, coverage, colorama, pytest, pytest-cov
+Successfully installed colorama-0.4.6 coverage-7.10.4 iniconfig-2.1.0 pluggy-1.6.0 pygments-2.19.2 pytest-8.4.1 pytest-cov-6.2.1
