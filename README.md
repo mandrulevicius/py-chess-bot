@@ -7,12 +7,10 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI
 - **Dual Interface Support** - Both Console and PyGame GUI interfaces
 - **Interactive GUI** - Professional chess board with piece graphics and game setup screen
-- **Smart Move Highlighting** - Visual indicators for legal moves when pieces are selected
-- **Adaptive Board Orientation** - Board automatically flips when playing as black
+- **Move Highlighting** - Visual indicators for legal moves when pieces are selected
 - **Standard Chess Notation** - Full SAN (Standard Algebraic Notation) support  
 - **Comprehensive Rule Engine** - All chess rules including castling, en passant, promotion
 - **Configurable AI Difficulty** - 21 levels from beginner to grandmaster strength
-- **Educational Focus** - Detailed error messages and notation help
 - **Test Coverage** - 72+ passing tests ensuring reliability
 
 ## 🚀 Quick Start
@@ -205,30 +203,6 @@ PyChessBot/
 └── README.md            # This file
 ```
 
-## 🎓 Educational Features
-
-PyChessBot is designed for learning:
-
-- **Visual Learning** - Interactive GUI shows legal moves when pieces are selected
-- **Clear Error Messages** - Explains why moves are invalid
-- **Notation Help** - Interactive examples of chess notation  
-- **Move Validation** - Shows legal moves when confused
-- **Game Analysis** - Position display with FEN notation
-- **Adaptive Interface** - Board orientation adjusts to player perspective
-- **Clean Code** - Well-documented, readable implementation following TDD
-
-## 🤝 Contributing
-
-This project welcomes contributions! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Follow TDD principles (tests first!)
-4. Ensure all tests pass
-5. Submit a pull request
-
-See [`CLAUDE.md`](CLAUDE.md) for development guidelines and [`docs/`](docs/) for architecture details.
-
 ## 📋 Requirements
 
 - **Python**: 3.7 or higher
@@ -261,11 +235,7 @@ MIT License - see LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
-- **Stockfish** - World-class chess engine
-- **python-chess** - Excellent Python chess library
-- **Test-Driven Development** - Kent Beck's methodology
-- **Clean Architecture** - Robert Martin's principles
+- **Test-Driven Development**
+- **Tidy first**
+- **Clean Architecture**
 
----
-
-**Built with ❤️ and TDD principles | Educational Chess Gaming**
