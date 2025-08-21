@@ -18,6 +18,8 @@ def parse_args():
                        help='AI difficulty level (0=weakest, 20=strongest, default=8)')
     parser.add_argument('--color', '-c', dest='human_color', choices=['white', 'black'], 
                        default='white', help='Human player color (default=white)')
+    parser.add_argument('--gui', '-g', action='store_true',
+                       help='Use PyGame GUI instead of console interface')
     return parser.parse_args()
 
 
@@ -191,55 +193,69 @@ def main():
     # Parse command line arguments
     args = parse_args()
     
-    # Display welcome message
-    clear_screen()
-    display_welcome()
-    
     # Setup game
-    show_message(f"Setting up game with AI difficulty {args.difficulty}...")
-    show_message(f"You are playing as {args.human_color}.")
-    
     game, ai = setup_game(difficulty=args.difficulty)
     
-    show_message("Game started! Type 'help' for commands.\n")
-    
-    # Main game loop
-    try:
-        while True:
-            # Display current position
-            display_board(game)
-            
-            # Check if game is over
-            if is_game_over(game):
-                show_game_result(game)
-                break
-            
-            # Determine whose turn it is
-            current_player = get_current_player(game)
-            
-            if current_player == args.human_color:
-                # Human turn
-                move_result = human_turn(game)
-                if move_result is None:  # User quit
-                    cleanup_ai(ai)
-                    show_message("Thanks for playing PyChessBot!")
+    if args.gui:
+        # Use PyGame GUI
+        try:
+            from src.ui.pygame_interface import run_gui_game
+            print(f"Starting PyChessBot GUI - Difficulty: {args.difficulty}, You are: {args.human_color}")
+            run_gui_game(game, ai, human_color=args.human_color)
+        except ImportError as e:
+            print(f"GUI not available: {e}")
+            print("Install pygame with: pip install pygame")
+            sys.exit(1)
+        except Exception as e:
+            print(f"GUI error: {e}")
+            sys.exit(1)
+    else:
+        # Use console interface (original behavior)
+        # Display welcome message
+        clear_screen()
+        display_welcome()
+        
+        show_message(f"Setting up game with AI difficulty {args.difficulty}...")
+        show_message(f"You are playing as {args.human_color}.")
+        show_message("Game started! Type 'help' for commands.\n")
+        
+        # Console game loop
+        try:
+            while True:
+                # Display current position
+                display_board(game)
+                
+                # Check if game is over
+                if is_game_over(game):
+                    show_game_result(game)
                     break
-                game = move_result['new_game']
-            else:
-                # AI turn
-                move_result = ai_turn(game, ai)
-                game = move_result['new_game']
-    
-    except KeyboardInterrupt:
-        cleanup_ai(ai)
-        show_message("\nGame interrupted by user. Thanks for playing!")
-    except Exception as e:
-        cleanup_ai(ai)
-        show_error(f"Unexpected error: {str(e)}")
-        sys.exit(1)
-    finally:
-        # Ensure cleanup happens even if we exit normally
-        cleanup_ai(ai)
+                
+                # Determine whose turn it is
+                current_player = get_current_player(game)
+                
+                if current_player == args.human_color:
+                    # Human turn
+                    move_result = human_turn(game)
+                    if move_result is None:  # User quit
+                        cleanup_ai(ai)
+                        show_message("Thanks for playing PyChessBot!")
+                        break
+                    game = move_result['new_game']
+                else:
+                    # AI turn
+                    move_result = ai_turn(game, ai)
+                    game = move_result['new_game']
+        
+        except KeyboardInterrupt:
+            cleanup_ai(ai)
+            show_message("\nGame interrupted by user. Thanks for playing!")
+        except Exception as e:
+            cleanup_ai(ai)
+            show_error(f"Unexpected error: {str(e)}")
+            sys.exit(1)
+        finally:
+            # Ensure cleanup happens even if we exit normally
+            cleanup_ai(ai)
 
 
 if __name__ == '__main__':
