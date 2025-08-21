@@ -3,7 +3,7 @@
 import argparse
 import sys
 from src.game.game_loop import create_game, make_move, get_current_player, get_game_status
-from src.ai.stockfish_ai import create_ai, get_ai_move
+from src.ai.stockfish_ai import create_ai, get_ai_move, cleanup_ai
 from src.ui.console_interface import (
     display_welcome, display_board, get_user_move, show_message, 
     show_error, show_help, show_move_history, show_legal_moves, 
@@ -70,7 +70,6 @@ def handle_user_command(user_input, game):
         clear_screen()
         return True
     elif command in ['quit', 'exit', 'q']:
-        show_message("Thanks for playing PyChessBot!")
         return None
     
     return False  # Not a command
@@ -93,7 +92,7 @@ def human_turn(game):
             # Check for special commands
             command_result = handle_user_command(user_input, game)
             if command_result is None:  # Quit command
-                sys.exit(0)
+                return None  # Return None to signal quit
             elif command_result is True:  # Command handled
                 continue
             
@@ -108,7 +107,7 @@ def human_turn(game):
                 
         except KeyboardInterrupt:
             show_message("\nGame interrupted. Thanks for playing!")
-            sys.exit(0)
+            return None
 
 
 def ai_turn(game, ai):
@@ -221,6 +220,10 @@ def main():
             if current_player == args.human_color:
                 # Human turn
                 move_result = human_turn(game)
+                if move_result is None:  # User quit
+                    cleanup_ai(ai)
+                    show_message("Thanks for playing PyChessBot!")
+                    break
                 game = move_result['new_game']
             else:
                 # AI turn
@@ -228,10 +231,15 @@ def main():
                 game = move_result['new_game']
     
     except KeyboardInterrupt:
+        cleanup_ai(ai)
         show_message("\nGame interrupted by user. Thanks for playing!")
     except Exception as e:
+        cleanup_ai(ai)
         show_error(f"Unexpected error: {str(e)}")
         sys.exit(1)
+    finally:
+        # Ensure cleanup happens even if we exit normally
+        cleanup_ai(ai)
 
 
 if __name__ == '__main__':

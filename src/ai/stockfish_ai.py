@@ -1,7 +1,63 @@
 """Stockfish AI integration for chess engine."""
 
+import atexit
 from stockfish import Stockfish
 from ..game.board_state import get_board_fen
+
+
+# Patch the Stockfish destructor to handle the AttributeError gracefully
+_original_del = Stockfish.__del__
+
+def _safe_del(self):
+    """Safe destructor that handles missing _stockfish attribute."""
+    try:
+        _original_del(self)
+    except AttributeError:
+        # Ignore the AttributeError from missing _stockfish
+        pass
+
+Stockfish.__del__ = _safe_del
+
+
+class SafeStockfish:
+    """Wrapper around Stockfish that handles cleanup properly."""
+    
+    def __init__(self, path):
+        self._engine = None
+        self._path = path
+        try:
+            self._engine = Stockfish(path=path)
+            # Register cleanup on exit
+            atexit.register(self._cleanup)
+        except Exception:
+            self._engine = None
+            raise
+    
+    def _cleanup(self):
+        """Clean up the engine properly."""
+        if self._engine and hasattr(self._engine, '_stockfish'):
+            try:
+                if hasattr(self._engine, 'send_quit_command'):
+                    self._engine.send_quit_command()
+            except:
+                pass
+            try:
+                if self._engine._stockfish and self._engine._stockfish.poll() is None:
+                    self._engine._stockfish.terminate()
+                    self._engine._stockfish.wait(timeout=1.0)
+            except:
+                pass
+        self._engine = None
+    
+    def __getattr__(self, name):
+        """Delegate all other attributes to the underlying engine."""
+        if self._engine is None:
+            raise RuntimeError("Stockfish engine is not initialized")
+        return getattr(self._engine, name)
+    
+    def __del__(self):
+        """Ensure cleanup on destruction."""
+        self._cleanup()
 
 
 def create_ai(difficulty=8, stockfish_path=None):
@@ -43,12 +99,13 @@ def create_ai(difficulty=8, stockfish_path=None):
         if path is None:
             continue
         try:
-            # Initialize Stockfish engine
-            engine = Stockfish(path=path)
+            # Initialize Stockfish engine with safe wrapper
+            engine = SafeStockfish(path=path)
             stockfish_path = path
             break
         except Exception as e:
             last_error = e
+            engine = None
             continue
     
     if engine is None:
@@ -130,6 +187,36 @@ def get_ai_move(ai, game, time_limit=3.0):
         }
 
 
+def cleanup_ai(ai):
+    """
+    Properly clean up AI resources.
+    
+    Args:
+        ai (dict): AI instance to cleanup
+    
+    Returns:
+        dict: Result with keys:
+            - success: True if cleanup was successful
+            - error: Error message (if unsuccessful)
+    """
+    try:
+        engine = ai.get("_engine")
+        if engine and isinstance(engine, SafeStockfish):
+            # Use the safe cleanup method
+            engine._cleanup()
+        
+        return {
+            "success": True
+        }
+    
+    except Exception as e:
+        # Don't raise exceptions during cleanup
+        return {
+            "success": False,
+            "error": f"AI cleanup failed: {str(e)}"
+        }
+
+
 def set_ai_difficulty(ai, new_difficulty):
     """
     Change AI difficulty level (immutable - returns new AI instance).
@@ -151,6 +238,9 @@ def set_ai_difficulty(ai, new_difficulty):
         }
     
     try:
+        # Clean up the old AI first
+        cleanup_ai(ai)
+        
         # Create new AI instance with new difficulty
         new_ai = create_ai(
             difficulty=new_difficulty,
