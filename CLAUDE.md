@@ -58,6 +58,17 @@ python -m pytest tests/test_filename.py::test_function_name
 # Run the main game
 python main.py
 
+# Run the main game with sound options
+python main.py --gui --sound          # GUI with sounds (default)
+python main.py --no-sound             # Console without sounds
+python main.py --volume 0.3           # Custom volume level
+
+# Test sound system
+python test_sound.py
+
+# Generate new sound effects (if needed)
+python scripts/generate_sounds.py
+
 # Code formatting
 black .
 
@@ -106,10 +117,48 @@ Based on the requirements, the codebase should be organized with these key compo
 - UI testing for human input parsing
 - Performance tests for AI response time
 
+## Sound System Implementation
+
+**Status**: ✅ IMPLEMENTED (Commit: a8d274c)
+
+The project now includes a comprehensive sound effects system:
+
+### Sound Features
+- **9 sound effects**: move, capture, check, checkmate, castle, promotion, error, game_start, game_end
+- **Smart priority system**: checkmate > check > castle > promotion > capture > move
+- **Volume control**: Adjustable sound levels (0.0-1.0)
+- **Graceful degradation**: Works without sound hardware/files
+- **Cross-platform**: Uses pygame.mixer for compatibility
+
+### Command-Line Options
+```bash
+python main.py --gui --sound          # Enable sounds (default)
+python main.py --no-sound            # Disable sounds  
+python main.py --volume 0.5          # Custom volume (0.0-1.0)
+```
+
+### Key Files
+- `src/ui/sound_manager.py`: Core sound management system
+- `src/game/move_analyzer.py`: Chess move analysis for sound selection
+- `assets/sounds/`: 9 generated WAV sound files
+- `scripts/generate_sounds.py`: Sound generation utility
+- `test_sound.py`: Sound system testing script
+
+### Testing
+- 27 new sound-related tests (100 total tests passing)
+- Sound integration tested in both GUI and console modes
+- Comprehensive test coverage for SoundManager and MoveAnalyzer classes
+
+### Usage Notes
+- Sounds are enabled by default
+- System automatically detects and handles missing sound files
+- Move analysis determines appropriate sound based on chess rules
+- Both GUI and console interfaces support sound effects
+
 ## Dependencies to Consider
 
 Common Python chess libraries that might be useful:
-- `python-chess`: Comprehensive chess library
-- `pygame`: For GUI implementation
-- `numpy`: For position evaluation arrays
-- `pytest`: For testing framework
+- `python-chess`: Comprehensive chess library ✅ USED
+- `pygame`: For GUI implementation ✅ USED (also for sound)
+- `numpy`: For position evaluation arrays (used in sound generation)
+- `pytest`: For testing framework ✅ USED
