@@ -950,7 +950,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
         'running': True,
         'game_over': False,
         'updated': True,  # Flag to trigger GUI refresh
-        'lock': threading.Lock()  # Thread safety
+        'lock': threading.Lock(),  # Thread safety
+        'gui_ready': False  # Flag to indicate GUI is ready to be closed
     }
     
     def gui_thread():
@@ -958,28 +959,38 @@ def run_dual_mode_game(game, ai, human_color='white'):
         game_ended_sound_played = False
         last_game = None
         
+        # Mark GUI as ready
+        with shared_state['lock']:
+            shared_state['gui_ready'] = True
+        
         try:
             while True:
-                # Check if we should stop
+                # Check if we should stop (non-blocking)
                 with shared_state['lock']:
                     should_run = shared_state['running']
                     if not should_run:
                         break
                 
-                # Handle pygame events (consume ALL events to prevent queue buildup)
+                # Handle pygame events with minimal processing to prevent hangs
+                events_processed = 0
                 for event in pygame.event.get():
+                    events_processed += 1
                     if event.type == pygame.QUIT:
                         with shared_state['lock']:
                             shared_state['running'] = False
                         print("\nGUI window closed. Exiting game...")
                         return
                     elif event.type == pygame.MOUSEBUTTONDOWN:
-                        # User clicked - show warning but don't process
-                        print("GUI clicked - remember this is VIEW ONLY mode! Use console for input.")
+                        # Just consume the event - don't print to avoid console spam
+                        pass
                     elif event.type == pygame.KEYDOWN:
-                        # User pressed key - show warning but don't process
-                        print("Key pressed in GUI - remember this is VIEW ONLY mode! Use console for input.")
-                    # Consume all other events silently to prevent event queue buildup
+                        # Just consume the event - don't print to avoid console spam
+                        pass
+                    # All other events are consumed silently
+                    
+                    # Limit event processing per frame to prevent hangs
+                    if events_processed > 50:
+                        break
                 
                 # Check if game state was updated (thread-safe)
                 current_game = None
@@ -1025,16 +1036,14 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         except:
                             pass  # If we can't even render error message, give up gracefully
                 
-                # Even lower FPS to reduce threading conflicts and ensure stability
-                clock.tick(20)
+                # Very low FPS to ensure stability and quick exit
+                clock.tick(10)
                 
         except Exception as e:
             print(f"GUI thread error: {e}")
         finally:
-            try:
-                pygame.quit()
-            except:
-                pass  # Ignore errors during cleanup
+            # Clean exit without pygame.quit() - main thread will handle it
+            pass
     
     def console_thread():
         """Console thread that handles user input and game logic."""
@@ -1172,12 +1181,22 @@ def run_dual_mode_game(game, ai, human_color='white'):
         finally:
             cleanup_ai(ai)
     
-    # Start GUI in a separate thread (non-daemon so we can clean up properly)
-    gui_thread_handle = threading.Thread(target=gui_thread, daemon=False)
+    # Start GUI in a separate thread (daemon so it exits when main thread exits)
+    gui_thread_handle = threading.Thread(target=gui_thread, daemon=True)
     gui_thread_handle.start()
     
-    # Give GUI time to initialize
-    time.sleep(0.5)
+    # Wait for GUI to be ready
+    max_wait = 50  # 5 seconds max
+    wait_count = 0
+    while wait_count < max_wait:
+        with shared_state['lock']:
+            if shared_state['gui_ready']:
+                break
+        time.sleep(0.1)
+        wait_count += 1
+    
+    if wait_count >= max_wait:
+        print("Warning: GUI initialization timeout")
     
     # Render initial position (thread-safe)
     with shared_state['lock']:
@@ -1212,15 +1231,14 @@ def run_dual_mode_game(game, ai, human_color='white'):
         with shared_state['lock']:
             shared_state['running'] = False
         
-        # Wait for GUI thread to finish
-        print("Cleaning up GUI...")
-        gui_thread_handle.join(timeout=3.0)
+        # Give GUI thread a moment to see the shutdown signal
+        time.sleep(0.1)
         
-        if gui_thread_handle.is_alive():
-            print("Warning: GUI thread did not stop cleanly")
-        
-        # Final pygame cleanup
+        # Since GUI thread is daemon, it will exit automatically
+        # Just do pygame cleanup
         try:
             pygame.quit()
         except:
             pass
+        
+        print("Dual mode cleanup complete.")
