@@ -6,10 +6,12 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI
 - **Triple Interface Support** - GUI, Console, and innovative Dual Mode (console + GUI)
-- **Interactive GUI** - Professional chess board with piece graphics and game setup screen
+- **Interactive GUI** - Professional 800x800 chess board with PNG piece graphics
+- **Game Setup Screen** - Interactive difficulty slider and color selection
+- **Smart Move Highlighting** - Legal moves shown with visual overlays
+- **Adaptive Board Orientation** - Automatically flips when playing as black  
 - **Dual Mode** - Type moves in console, see them instantly in GUI window
 - **Sound Effects** - Audio feedback for moves, captures, check, and checkmate
-- **Move Highlighting** - Visual indicators for legal moves when pieces are selected
 - **Standard Chess Notation** - Full SAN (Standard Algebraic Notation) support  
 - **Comprehensive Rule Engine** - All chess rules including castling, en passant, promotion
 - **Configurable AI Difficulty** - 21 levels from beginner to grandmaster strength
@@ -76,15 +78,18 @@ python main.py --dual --no-sound --volume 0.5
 ### GUI Mode (PyGame Interface)
 
 **Game Setup:**
-- Use the interactive setup screen to select AI difficulty (0-20) and your color
+- Interactive setup screen appears when you launch with just `python main.py`
+- Use difficulty slider to choose AI strength (0-20) or arrow keys
+- Click White/Black buttons for color selection or press Space
+- Press Enter or click "Start Game" to begin
 - Board automatically orients with your pieces at the bottom
-- Click "Start Game" to begin
 
 **Playing:**
 - Click on a piece to select it (shows yellow highlight)
-- Legal destination squares are highlighted with semi-transparent white
+- Legal destination squares are highlighted with semi-transparent white overlays
 - Click on a highlighted square to move the piece there
-- The game shows whose turn it is at the top
+- Click same piece again or invalid square to deselect
+- Game shows current turn and status at the top
 
 ### Console Mode
 
@@ -177,14 +182,16 @@ python -m pytest tests/ --cov=src
 ```
 
 **Test Coverage:**
-- 72+ total tests across all components
+- 101+ total tests across all components
 - Move parsing and validation (13 tests)
-- Board state management (7 tests)
+- Board state management (7 tests)  
 - Game loop functionality (7 tests)
-- Stockfish AI integration (8 tests)
+- Move analyzer (11 tests)
+- Stockfish AI integration (9 tests)
 - Console interface (12 tests)
 - PyGame GUI interface (15 tests)
-- Main application (10+ tests)
+- Sound system (15 tests)
+- Main application (12 tests)
 
 ## 🔧 Development
 
@@ -210,7 +217,7 @@ This project follows strict Test-Driven Development:
 3. **REFACTOR**: Clean up while keeping tests green
 4. **COMMIT**: Commit working implementation
 
-See [`CLAUDE.md`](CLAUDE.md) for detailed development guidelines and [`docs/`](docs/) for design documents.
+See [`CLAUDE.md`](CLAUDE.md) for detailed development guidelines and [`docs/gui-design.md`](docs/gui-design.md) for GUI technical details.
 
 ## 📁 Project Structure
 
