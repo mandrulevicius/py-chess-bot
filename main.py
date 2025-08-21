@@ -17,10 +17,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description='PyChessBot - Human vs AI Chess Game')
     parser.add_argument('--difficulty', '-d', type=int, default=8, choices=range(0, 21),
                        help='AI difficulty level (0=weakest, 20=strongest, default=8)')
-    parser.add_argument('--color', '-c', dest='human_color', choices=['white', 'black'], 
+    parser.add_argument('--color', dest='human_color', choices=['white', 'black'], 
                        default='white', help='Human player color (default=white)')
-    parser.add_argument('--gui', '-g', action='store_true',
-                       help='Use PyGame GUI instead of console interface')
+    parser.add_argument('--gui', '-g', action='store_true', default=True,
+                       help='Use PyGame GUI interface (default=True)')
+    parser.add_argument('--console', '-c', action='store_false', dest='gui',
+                       help='Use console interface instead of GUI')
     parser.add_argument('--sound', '-s', action='store_true', default=True,
                        help='Enable sound effects (default=True)')
     parser.add_argument('--no-sound', action='store_false', dest='sound',
