@@ -966,14 +966,20 @@ def run_dual_mode_game(game, ai, human_color='white'):
                     if not should_run:
                         break
                 
-                # Handle pygame events (only window close and essential events)
+                # Handle pygame events (consume ALL events to prevent queue buildup)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         with shared_state['lock']:
                             shared_state['running'] = False
                         print("\nGUI window closed. Exiting game...")
                         return
-                    # Ignore all other events to prevent interaction issues
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        # User clicked - show warning but don't process
+                        print("GUI clicked - remember this is VIEW ONLY mode! Use console for input.")
+                    elif event.type == pygame.KEYDOWN:
+                        # User pressed key - show warning but don't process
+                        print("Key pressed in GUI - remember this is VIEW ONLY mode! Use console for input.")
+                    # Consume all other events silently to prevent event queue buildup
                 
                 # Check if game state was updated (thread-safe)
                 current_game = None
@@ -997,14 +1003,30 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         
                         # Render the current game state
                         gui.render(current_game)
+                        
+                        # Add visual indicator that this is view-only mode
+                        font = pygame.font.Font(None, 24)
+                        view_only_text = font.render("VIEW ONLY - Use Console for Input", True, (255, 255, 0))
+                        gui.screen.blit(view_only_text, (10, 10))
+                        
+                        # Force display update
                         pygame.display.flip()
                         
                     except Exception as e:
                         print(f"GUI rendering error: {e}")
-                        # Continue running even if rendering fails
+                        # Try to clear screen and show error message
+                        try:
+                            gui.screen.fill((50, 50, 50))  # Dark grey background
+                            error_font = pygame.font.Font(None, 48)
+                            error_text = error_font.render("Rendering Error - Check Console", True, (255, 255, 255))
+                            text_rect = error_text.get_rect(center=(WINDOW_SIZE//2, WINDOW_SIZE//2))
+                            gui.screen.blit(error_text, text_rect)
+                            pygame.display.flip()
+                        except:
+                            pass  # If we can't even render error message, give up gracefully
                 
-                # Lower FPS to reduce CPU usage and threading conflicts
-                clock.tick(30)
+                # Even lower FPS to reduce threading conflicts and ensure stability
+                clock.tick(20)
                 
         except Exception as e:
             print(f"GUI thread error: {e}")
