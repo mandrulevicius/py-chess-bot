@@ -89,28 +89,52 @@ def test_setup_game_custom():
 def test_handle_user_commands():
     """Test handling special user commands."""
     from src.game.game_loop import create_game
+    from src.ai.stockfish_ai import create_ai, cleanup_ai
     
     game = create_game()
+    ai = create_ai(difficulty=1)
     
-    # Test help command
-    with patch('main.show_help') as mock_help:
-        result = main.handle_user_command('help', game)
-        assert result is True
-        mock_help.assert_called_once()
-    
-    # Test history command  
-    with patch('main.show_move_history') as mock_history:
-        result = main.handle_user_command('history', game)
-        assert result is True
-        mock_history.assert_called_once()
-    
-    # Test quit command
-    result = main.handle_user_command('quit', game)
-    assert result is None  # Should return None to exit
-    
-    # Test regular move (not a command)
-    result = main.handle_user_command('e4', game)
-    assert result is False  # Regular move, not handled as command
+    try:
+        # Test help command
+        with patch('main.show_help') as mock_help:
+            handled, updated_game = main.handle_user_command('help', game, ai)
+            assert handled is True
+            assert updated_game == game
+            mock_help.assert_called_once()
+        
+        # Test history command  
+        with patch('main.show_move_history') as mock_history:
+            handled, updated_game = main.handle_user_command('history', game, ai)
+            assert handled is True
+            assert updated_game == game
+            mock_history.assert_called_once()
+        
+        # Test quit command
+        handled, updated_game = main.handle_user_command('quit', game, ai)
+        assert handled is None  # Should return None to exit
+        assert updated_game == game
+        
+        # Test regular move (not a command)
+        handled, updated_game = main.handle_user_command('e4', game, ai)
+        assert handled is False  # Regular move, not handled as command
+        assert updated_game == game
+        
+        # Test new learning commands
+        handled, updated_game = main.handle_user_command('eval', game, ai)
+        assert handled is True  # Should handle eval command
+        assert updated_game == game
+        
+        handled, updated_game = main.handle_user_command('best', game, ai)
+        assert handled is True  # Should handle best command
+        assert updated_game == game
+        
+        # Test solo command (should warn no solo state)
+        handled, updated_game = main.handle_user_command('solo', game, ai)
+        assert handled is True  # Should handle solo command
+        assert updated_game == game
+        
+    finally:
+        cleanup_ai(ai)
 
 
 def test_human_turn_logic():

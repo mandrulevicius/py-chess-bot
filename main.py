@@ -10,6 +10,9 @@ from src.ui.console_interface import (
     show_game_status, clear_screen
 )
 from src.ui.sound_manager import get_sound_manager, initialize_sound_system
+from src.analysis.position_evaluator import get_position_evaluation, get_best_move_suggestion
+from src.analysis.move_history import GameHistory, can_undo, can_redo, undo_move, redo_move, get_current_position
+from src.analysis.solo_mode import SoloModeState, toggle_solo_mode, get_solo_mode_status, should_use_ai
 
 
 def parse_args():
@@ -54,46 +57,102 @@ def setup_game(difficulty=8):
         sys.exit(1)
 
 
-def handle_user_command(user_input, game):
+def handle_user_command(user_input, game, ai, game_history=None, solo_state=None):
     """
-    Handle special user commands.
+    Handle special user commands including learning features.
     
     Args:
         user_input (str): User input string
         game (dict): Current game state
+        ai (dict): AI instance
+        game_history (GameHistory): Game history for undo/redo
+        solo_state (SoloModeState): Solo mode state
     
     Returns:
-        bool or None: True if command handled, False if not a command, None to quit
+        tuple: (command_handled, updated_game) 
+               command_handled: True if command handled, False if not a command, None to quit
+               updated_game: Updated game state (if undo/redo changed it)
     """
     command = user_input.lower().strip()
     
     if command == 'help':
         show_help()
-        return True
+        return True, game
     elif command == 'history':
         show_move_history(game)
-        return True
+        return True, game
     elif command == 'legal':
         show_legal_moves(game)
-        return True
+        return True, game
     elif command == 'status':
         show_game_status(game)
-        return True
+        return True, game
     elif command == 'clear':
         clear_screen()
-        return True
+        return True, game
     elif command in ['quit', 'exit', 'q']:
-        return None
+        return None, game
     
-    return False  # Not a command
+    # New learning commands
+    elif command == 'eval':
+        evaluation = get_position_evaluation(game, ai)
+        if evaluation.get('evaluation_type') == 'error':
+            show_error(f"Evaluation failed: {evaluation.get('error', 'Unknown error')}")
+        else:
+            score = evaluation.get('score', 0)
+            eval_type = evaluation.get('evaluation_type', 'cp')
+            if eval_type == 'cp':
+                show_message(f"Position evaluation: {score:+} centipawns")
+            elif eval_type == 'mate':
+                mate_in = evaluation.get('mate_in', 0)
+                show_message(f"Mate in {abs(mate_in)} moves ({'White' if mate_in > 0 else 'Black'} wins)")
+        return True, game
+    
+    elif command == 'best':
+        best_move = get_best_move_suggestion(game, ai)
+        if best_move:
+            show_message(f"Best move: {best_move}")
+        else:
+            show_error("Could not get best move suggestion")
+        return True, game
+    
+    elif command == 'solo':
+        if solo_state:
+            toggle_solo_mode(solo_state)
+            status = get_solo_mode_status(solo_state)
+            show_message(status)
+        else:
+            show_error("Solo mode not available in this interface")
+        return True, game
+    
+    elif command == 'undo':
+        if game_history and can_undo(game_history):
+            if undo_move(game_history):
+                updated_game = get_current_position(game_history)
+                show_message("Move undone")
+                return True, updated_game
+        show_error("Cannot undo - no previous moves")
+        return True, game
+    
+    elif command == 'redo':
+        if game_history and can_redo(game_history):
+            if redo_move(game_history):
+                updated_game = get_current_position(game_history)
+                show_message("Move redone")
+                return True, updated_game
+        show_error("Cannot redo - no moves to redo")
+        return True, game
+    
+    return False, game  # Not a command
 
 
-def human_turn(game):
+def human_turn(game, ai):
     """
     Execute human player's turn.
     
     Args:
         game (dict): Current game state
+        ai (dict): AI instance for learning commands
     
     Returns:
         dict: Move result with success/error information
@@ -102,11 +161,12 @@ def human_turn(game):
         try:
             user_input = get_user_move()
             
-            # Check for special commands
-            command_result = handle_user_command(user_input, game)
-            if command_result is None:  # Quit command
+            # Check for special commands  
+            command_handled, updated_game = handle_user_command(user_input, game, ai)
+            if command_handled is None:  # Quit command
                 return None  # Return None to signal quit
-            elif command_result is True:  # Command handled
+            elif command_handled is True:  # Command handled
+                game = updated_game  # Update game state (for undo/redo)
                 continue
             
             # Try to make the move
@@ -298,7 +358,7 @@ def main():
                 
                 if current_player == args.human_color:
                     # Human turn
-                    move_result = human_turn(game)
+                    move_result = human_turn(game, ai)
                     if move_result is None:  # User quit
                         cleanup_ai(ai)
                         show_message("Thanks for playing PyChessBot!")
