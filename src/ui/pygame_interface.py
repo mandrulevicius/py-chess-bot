@@ -932,7 +932,7 @@ def run_dual_mode_game(game, ai, human_color='white'):
     # Initialize GUI components
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-    pygame.display.set_caption("PyChessBot - Dual Mode (Console + GUI)")
+    pygame.display.set_caption("PyChessBot - Dual Mode (View Only - Use Console for Input)")
     clock = pygame.time.Clock()
     
     gui = GameGUI()
@@ -944,44 +944,75 @@ def run_dual_mode_game(game, ai, human_color='white'):
     sound_manager = get_sound_manager()
     sound_manager.play_game_start_sound()
     
-    # Shared state between console and GUI threads
+    # Shared state between console and GUI threads with thread safety
     shared_state = {
         'game': game,
         'running': True,
         'game_over': False,
-        'updated': True  # Flag to trigger GUI refresh
+        'updated': True,  # Flag to trigger GUI refresh
+        'lock': threading.Lock()  # Thread safety
     }
     
     def gui_thread():
         """GUI thread that renders the board and handles window events."""
         game_ended_sound_played = False
+        last_game = None
         
-        while shared_state['running']:
-            # Handle pygame events (mainly window close)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    shared_state['running'] = False
-                    break
-            
-            # Check if game state was updated
-            if shared_state['updated']:
-                current_game = shared_state['game']
+        try:
+            while True:
+                # Check if we should stop
+                with shared_state['lock']:
+                    should_run = shared_state['running']
+                    if not should_run:
+                        break
                 
-                # Check if game is over
-                game_status = get_game_status(current_game)
-                if not game_status['active']:
-                    if not game_ended_sound_played:
-                        sound_manager.play_game_end_sound()
-                        game_ended_sound_played = True
+                # Handle pygame events (only window close and essential events)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        with shared_state['lock']:
+                            shared_state['running'] = False
+                        print("\nGUI window closed. Exiting game...")
+                        return
+                    # Ignore all other events to prevent interaction issues
                 
-                # Render the current game state
-                gui.render(current_game)
-                pygame.display.flip()
-                shared_state['updated'] = False
-            
-            clock.tick(60)  # 60 FPS
-        
-        pygame.quit()
+                # Check if game state was updated (thread-safe)
+                current_game = None
+                needs_update = False
+                
+                with shared_state['lock']:
+                    if shared_state['updated'] or shared_state['game'] != last_game:
+                        current_game = shared_state['game']
+                        shared_state['updated'] = False
+                        needs_update = True
+                        last_game = current_game
+                
+                if needs_update and current_game:
+                    try:
+                        # Check if game is over
+                        game_status = get_game_status(current_game)
+                        if not game_status['active']:
+                            if not game_ended_sound_played:
+                                sound_manager.play_game_end_sound()
+                                game_ended_sound_played = True
+                        
+                        # Render the current game state
+                        gui.render(current_game)
+                        pygame.display.flip()
+                        
+                    except Exception as e:
+                        print(f"GUI rendering error: {e}")
+                        # Continue running even if rendering fails
+                
+                # Lower FPS to reduce CPU usage and threading conflicts
+                clock.tick(30)
+                
+        except Exception as e:
+            print(f"GUI thread error: {e}")
+        finally:
+            try:
+                pygame.quit()
+            except:
+                pass  # Ignore errors during cleanup
     
     def console_thread():
         """Console thread that handles user input and game logic."""
@@ -1032,7 +1063,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
                                 clear_screen()
                                 continue
                             elif command in ['quit', 'exit', 'q']:
-                                shared_state['running'] = False
+                                with shared_state['lock']:
+                                    shared_state['running'] = False
                                 return
                             
                             # Try to make the move
@@ -1040,8 +1072,10 @@ def run_dual_mode_game(game, ai, human_color='white'):
                             
                             if move_result['success']:
                                 current_game = move_result['new_game']
-                                shared_state['game'] = current_game
-                                shared_state['updated'] = True
+                                # Thread-safe state update
+                                with shared_state['lock']:
+                                    shared_state['game'] = current_game
+                                    shared_state['updated'] = True
                                 
                                 # Play sound effect
                                 analysis = move_result.get('move_analysis', {})
@@ -1060,7 +1094,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
                                 
                         except KeyboardInterrupt:
                             show_message("\nGame interrupted. Thanks for playing!")
-                            shared_state['running'] = False
+                            with shared_state['lock']:
+                                shared_state['running'] = False
                             return
                 else:
                     # AI turn
@@ -1071,7 +1106,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         
                         if not ai_move_result['success']:
                             show_error(f"AI error: {ai_move_result['error']}")
-                            shared_state['running'] = False
+                            with shared_state['lock']:
+                                shared_state['running'] = False
                             return
                         
                         ai_move = ai_move_result['move']
@@ -1081,12 +1117,15 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         
                         if not move_result['success']:
                             show_error(f"AI made invalid move: {move_result['error']}")
-                            shared_state['running'] = False
+                            with shared_state['lock']:
+                                shared_state['running'] = False
                             return
                         
                         current_game = move_result['new_game']
-                        shared_state['game'] = current_game
-                        shared_state['updated'] = True
+                        # Thread-safe state update
+                        with shared_state['lock']:
+                            shared_state['game'] = current_game
+                            shared_state['updated'] = True
                         
                         # Play sound effect for AI move
                         analysis = move_result.get('move_analysis', {})
@@ -1100,43 +1139,66 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         
                     except Exception as e:
                         show_error(f"AI turn failed: {str(e)}")
-                        shared_state['running'] = False
+                        with shared_state['lock']:
+                            shared_state['running'] = False
                         return
         
         except Exception as e:
             show_error(f"Console thread error: {str(e)}")
-            shared_state['running'] = False
+            with shared_state['lock']:
+                shared_state['running'] = False
         finally:
             cleanup_ai(ai)
     
-    # Start GUI in a separate thread
-    gui_thread_handle = threading.Thread(target=gui_thread, daemon=True)
+    # Start GUI in a separate thread (non-daemon so we can clean up properly)
+    gui_thread_handle = threading.Thread(target=gui_thread, daemon=False)
     gui_thread_handle.start()
     
     # Give GUI time to initialize
     time.sleep(0.5)
     
-    # Render initial position
-    shared_state['updated'] = True
+    # Render initial position (thread-safe)
+    with shared_state['lock']:
+        shared_state['updated'] = True
     
-    # Show initial console display
-    clear_screen()
-    print("=" * 60)
-    print("  PyChessBot - Dual Mode")
-    print("  Console input + GUI visualization")
-    print("=" * 60)
-    print()
-    print("Instructions:")
-    print("- Type moves in this console (e.g., e4, Nf3, O-O)")
-    print("- Watch moves appear in the GUI window")
-    print("- Type 'help' for available commands")
-    print("- Type 'quit' to exit")
-    print("- Close GUI window to exit")
-    print()
-    
-    # Run console interface in main thread
-    console_thread()
-    
-    # Wait for GUI thread to finish
-    shared_state['running'] = False
-    gui_thread_handle.join(timeout=2.0)
+    try:
+        # Show initial console display
+        clear_screen()
+        print("=" * 60)
+        print("  PyChessBot - Dual Mode")
+        print("  Console input + GUI visualization")
+        print("=" * 60)
+        print()
+        print("Instructions:")
+        print("- Type moves in this console (e.g., e4, Nf3, O-O)")
+        print("- Watch moves appear in the GUI window")
+        print("- Type 'help' for available commands")
+        print("- Type 'quit' to exit")
+        print("- Close GUI window to exit")
+        print("- DO NOT click in GUI window (view only)")
+        print()
+        
+        # Run console interface in main thread
+        console_thread()
+        
+    except KeyboardInterrupt:
+        print("\nGame interrupted by user.")
+    except Exception as e:
+        print(f"Dual mode error: {str(e)}")
+    finally:
+        # Ensure GUI thread stops
+        with shared_state['lock']:
+            shared_state['running'] = False
+        
+        # Wait for GUI thread to finish
+        print("Cleaning up GUI...")
+        gui_thread_handle.join(timeout=3.0)
+        
+        if gui_thread_handle.is_alive():
+            print("Warning: GUI thread did not stop cleanly")
+        
+        # Final pygame cleanup
+        try:
+            pygame.quit()
+        except:
+            pass
