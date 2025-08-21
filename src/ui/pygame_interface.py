@@ -955,7 +955,7 @@ def run_dual_mode_game(game, ai, human_color='white'):
     }
     
     def gui_thread():
-        """GUI thread that renders the board and handles window events."""
+        """GUI thread that ONLY does rendering - NO event handling."""
         game_ended_sound_played = False
         last_game = None
         
@@ -971,26 +971,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
                     if not should_run:
                         break
                 
-                # Handle pygame events with minimal processing to prevent hangs
-                events_processed = 0
-                for event in pygame.event.get():
-                    events_processed += 1
-                    if event.type == pygame.QUIT:
-                        with shared_state['lock']:
-                            shared_state['running'] = False
-                        print("\nGUI window closed. Exiting game...")
-                        return
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        # Just consume the event - don't print to avoid console spam
-                        pass
-                    elif event.type == pygame.KEYDOWN:
-                        # Just consume the event - don't print to avoid console spam
-                        pass
-                    # All other events are consumed silently
-                    
-                    # Limit event processing per frame to prevent hangs
-                    if events_processed > 50:
-                        break
+                # DO NOT HANDLE PYGAME EVENTS HERE - NOT THREAD SAFE!
+                # All event handling must be done in main thread
                 
                 # Check if game state was updated (thread-safe)
                 current_game = None
@@ -1036,8 +1018,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
                         except:
                             pass  # If we can't even render error message, give up gracefully
                 
-                # Very low FPS to ensure stability and quick exit
-                clock.tick(10)
+                # Higher FPS since we're not processing events (just rendering)
+                clock.tick(30)
                 
         except Exception as e:
             print(f"GUI thread error: {e}")
@@ -1045,12 +1027,24 @@ def run_dual_mode_game(game, ai, human_color='white'):
             # Clean exit without pygame.quit() - main thread will handle it
             pass
     
-    def console_thread():
-        """Console thread that handles user input and game logic."""
+    def console_and_events_thread():
+        """Main thread that handles console input, pygame events, and game logic."""
+        import time
         current_game = shared_state['game']
         
         try:
             while shared_state['running']:
+                # Handle pygame events in main thread (THREAD SAFE)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        with shared_state['lock']:
+                            shared_state['running'] = False
+                        print("\nGUI window closed. Exiting game...")
+                        return
+                    # Consume all other events silently - no processing needed
+                
+                # Small delay to prevent CPU spinning and allow GUI thread to render
+                time.sleep(0.01)
                 # Display current position in console
                 display_board(current_game)
                 
@@ -1219,8 +1213,8 @@ def run_dual_mode_game(game, ai, human_color='white'):
         print("- DO NOT click in GUI window (view only)")
         print()
         
-        # Run console interface in main thread
-        console_thread()
+        # Run console interface and event handling in main thread  
+        console_and_events_thread()
         
     except KeyboardInterrupt:
         print("\nGame interrupted by user.")
