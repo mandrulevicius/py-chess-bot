@@ -39,24 +39,29 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 
 ### Run the Game
 
-**GUI Mode (Recommended):**
-```bash
-python main.py --gui
-```
-
-**Console Mode:**
+**GUI Mode (Default):**
 ```bash
 python main.py
 ```
 
-**Command line options:**
+**Console Mode:**
 ```bash
-python main.py --gui --difficulty 15 --color black
+python main.py --console
 ```
 
-- `--gui` / `-g`: Use PyGame GUI interface (default: console)
+**Command line options:**
+```bash
+python main.py --difficulty 15 --color black
+python main.py --console --no-sound --volume 0.5
+```
+
+- `--gui` / `-g`: Use PyGame GUI interface (default)
+- `--console` / `-c`: Use console interface instead of GUI
 - `--difficulty` / `-d`: AI difficulty level (0-20, default: 8)
-- `--color` / `-c`: Your color (white/black, default: white)
+- `--color`: Your color (white/black, default: white)
+- `--sound` / `-s`: Enable sound effects (default)
+- `--no-sound`: Disable sound effects
+- `--volume` / `-v`: Sound volume (0.0-1.0, default: 0.7)
 
 ## 🎮 How to Play
 

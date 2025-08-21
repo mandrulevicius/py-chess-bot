@@ -916,3 +916,227 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     finally:
         cleanup_ai(ai)
         gui.quit()
+
+
+def run_dual_mode_game(game, ai, human_color='white'):
+    """Run the chess game in dual mode: console input with GUI visualization."""
+    import threading
+    import time
+    from ..game.game_loop import make_move, get_current_player, get_game_status
+    from ..ai.stockfish_ai import get_ai_move, cleanup_ai
+    from ..ui.console_interface import (
+        display_board, get_user_move, show_message, show_error, 
+        clear_screen, show_help, show_move_history, show_legal_moves, show_game_status
+    )
+    
+    # Initialize GUI components
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    pygame.display.set_caption("PyChessBot - Dual Mode (Console + GUI)")
+    clock = pygame.time.Clock()
+    
+    gui = GameGUI()
+    gui.screen = screen
+    gui.clock = clock
+    gui.renderer.set_flipped(human_color == 'black')
+    
+    # Get sound manager
+    sound_manager = get_sound_manager()
+    sound_manager.play_game_start_sound()
+    
+    # Shared state between console and GUI threads
+    shared_state = {
+        'game': game,
+        'running': True,
+        'game_over': False,
+        'updated': True  # Flag to trigger GUI refresh
+    }
+    
+    def gui_thread():
+        """GUI thread that renders the board and handles window events."""
+        game_ended_sound_played = False
+        
+        while shared_state['running']:
+            # Handle pygame events (mainly window close)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    shared_state['running'] = False
+                    break
+            
+            # Check if game state was updated
+            if shared_state['updated']:
+                current_game = shared_state['game']
+                
+                # Check if game is over
+                game_status = get_game_status(current_game)
+                if not game_status['active']:
+                    if not game_ended_sound_played:
+                        sound_manager.play_game_end_sound()
+                        game_ended_sound_played = True
+                
+                # Render the current game state
+                gui.render(current_game)
+                pygame.display.flip()
+                shared_state['updated'] = False
+            
+            clock.tick(60)  # 60 FPS
+        
+        pygame.quit()
+    
+    def console_thread():
+        """Console thread that handles user input and game logic."""
+        current_game = shared_state['game']
+        
+        try:
+            while shared_state['running']:
+                # Display current position in console
+                display_board(current_game)
+                
+                # Check if game is over
+                game_status = get_game_status(current_game)
+                if not game_status['active']:
+                    show_message("Game Over!")
+                    if game_status['result'] == 'checkmate':
+                        winner = 'White' if game_status['winner'] == 'white' else 'Black'
+                        show_message(f"Checkmate! {winner} wins!")
+                    elif game_status['result'] == 'stalemate':
+                        show_message("Stalemate! It's a draw!")
+                    else:
+                        show_message(f"Game ended: {game_status['result']}")
+                    break
+                
+                # Determine whose turn it is
+                current_player = get_current_player(current_game)
+                
+                if current_player == human_color:
+                    # Human turn - get console input
+                    while True:
+                        try:
+                            user_input = get_user_move()
+                            
+                            # Check for special commands
+                            command = user_input.lower().strip()
+                            if command == 'help':
+                                show_help()
+                                continue
+                            elif command == 'history':
+                                show_move_history(current_game)
+                                continue
+                            elif command == 'legal':
+                                show_legal_moves(current_game)
+                                continue
+                            elif command == 'status':
+                                show_game_status(current_game)
+                                continue
+                            elif command == 'clear':
+                                clear_screen()
+                                continue
+                            elif command in ['quit', 'exit', 'q']:
+                                shared_state['running'] = False
+                                return
+                            
+                            # Try to make the move
+                            move_result = make_move(current_game, user_input)
+                            
+                            if move_result['success']:
+                                current_game = move_result['new_game']
+                                shared_state['game'] = current_game
+                                shared_state['updated'] = True
+                                
+                                # Play sound effect
+                                analysis = move_result.get('move_analysis', {})
+                                sound_manager.play_move_sound(
+                                    is_capture=analysis.get('is_capture', False),
+                                    is_check=analysis.get('is_check', False),
+                                    is_checkmate=analysis.get('is_checkmate', False),
+                                    is_castle=analysis.get('is_castle', False),
+                                    is_promotion=analysis.get('is_promotion', False)
+                                )
+                                break
+                            else:
+                                sound_manager.play_error_sound()
+                                show_error(move_result['error'])
+                                show_message("Type 'help' for assistance or 'legal' to see valid moves.")
+                                
+                        except KeyboardInterrupt:
+                            show_message("\nGame interrupted. Thanks for playing!")
+                            shared_state['running'] = False
+                            return
+                else:
+                    # AI turn
+                    show_message("AI is thinking...")
+                    
+                    try:
+                        ai_move_result = get_ai_move(ai, current_game, time_limit=3.0)
+                        
+                        if not ai_move_result['success']:
+                            show_error(f"AI error: {ai_move_result['error']}")
+                            shared_state['running'] = False
+                            return
+                        
+                        ai_move = ai_move_result['move']
+                        show_message(f"AI plays: {ai_move}")
+                        
+                        move_result = make_move(current_game, ai_move)
+                        
+                        if not move_result['success']:
+                            show_error(f"AI made invalid move: {move_result['error']}")
+                            shared_state['running'] = False
+                            return
+                        
+                        current_game = move_result['new_game']
+                        shared_state['game'] = current_game
+                        shared_state['updated'] = True
+                        
+                        # Play sound effect for AI move
+                        analysis = move_result.get('move_analysis', {})
+                        sound_manager.play_move_sound(
+                            is_capture=analysis.get('is_capture', False),
+                            is_check=analysis.get('is_check', False),
+                            is_checkmate=analysis.get('is_checkmate', False),
+                            is_castle=analysis.get('is_castle', False),
+                            is_promotion=analysis.get('is_promotion', False)
+                        )
+                        
+                    except Exception as e:
+                        show_error(f"AI turn failed: {str(e)}")
+                        shared_state['running'] = False
+                        return
+        
+        except Exception as e:
+            show_error(f"Console thread error: {str(e)}")
+            shared_state['running'] = False
+        finally:
+            cleanup_ai(ai)
+    
+    # Start GUI in a separate thread
+    gui_thread_handle = threading.Thread(target=gui_thread, daemon=True)
+    gui_thread_handle.start()
+    
+    # Give GUI time to initialize
+    time.sleep(0.5)
+    
+    # Render initial position
+    shared_state['updated'] = True
+    
+    # Show initial console display
+    clear_screen()
+    print("=" * 60)
+    print("  PyChessBot - Dual Mode")
+    print("  Console input + GUI visualization")
+    print("=" * 60)
+    print()
+    print("Instructions:")
+    print("- Type moves in this console (e.g., e4, Nf3, O-O)")
+    print("- Watch moves appear in the GUI window")
+    print("- Type 'help' for available commands")
+    print("- Type 'quit' to exit")
+    print("- Close GUI window to exit")
+    print()
+    
+    # Run console interface in main thread
+    console_thread()
+    
+    # Wait for GUI thread to finish
+    shared_state['running'] = False
+    gui_thread_handle.join(timeout=2.0)

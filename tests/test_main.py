@@ -36,11 +36,18 @@ def test_parse_interface_arguments():
     with patch('sys.argv', ['main.py', '--gui']):
         args = main.parse_args()
         assert args.gui == True
+        assert args.dual == False
     
     # Test --console flag
     with patch('sys.argv', ['main.py', '--console']):
         args = main.parse_args()
         assert args.gui == False
+        assert args.dual == False
+    
+    # Test --dual flag
+    with patch('sys.argv', ['main.py', '--dual']):
+        args = main.parse_args()
+        assert args.dual == True
 
 
 def test_parse_sound_arguments():

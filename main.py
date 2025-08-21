@@ -23,6 +23,8 @@ def parse_args():
                        help='Use PyGame GUI interface (default=True)')
     parser.add_argument('--console', '-c', action='store_false', dest='gui',
                        help='Use console interface instead of GUI')
+    parser.add_argument('--dual', action='store_true',
+                       help='Use console interface with GUI board visualization')
     parser.add_argument('--sound', '-s', action='store_true', default=True,
                        help='Enable sound effects (default=True)')
     parser.add_argument('--no-sound', action='store_false', dest='sound',
@@ -232,7 +234,21 @@ def main():
     # Setup game
     game, ai = setup_game(difficulty=args.difficulty)
     
-    if args.gui:
+    if args.dual:
+        # Use dual mode: console interface with GUI visualization
+        try:
+            from src.ui.pygame_interface import run_dual_mode_game
+            print(f"Starting PyChessBot in dual mode - Difficulty: {args.difficulty}, You are: {args.human_color}")
+            print("Type moves in console, see them visualized in GUI window!")
+            run_dual_mode_game(game, ai, human_color=args.human_color)
+        except ImportError as e:
+            print(f"Dual mode not available: {e}")
+            print("Install pygame with: pip install pygame")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Dual mode error: {e}")
+            sys.exit(1)
+    elif args.gui:
         # Use PyGame GUI with setup screen
         try:
             from src.ui.pygame_interface import run_gui_game_with_setup, run_gui_game
