@@ -1,6 +1,7 @@
 """Basic chess game loop functionality."""
 
 from .board_state import create_board, apply_move, get_board_fen, get_legal_moves as get_board_legal_moves
+from .move_analyzer import analyze_move_from_san
 
 
 def create_game(position=None):
@@ -98,14 +99,19 @@ def make_move(game, san_move):
             - success: True if move was made successfully
             - new_game: New game state (if successful)
             - error: Error message (if unsuccessful)
+            - move_analysis: Analysis of the move (captures, check, etc.)
     """
+    # Analyze the move before applying it
+    move_analysis = analyze_move_from_san(game["board"], san_move)
+    
     # Apply move to board
     move_result = apply_move(game["board"], san_move)
     
     if not move_result["success"]:
         return {
             "success": False,
-            "error": move_result["error"]
+            "error": move_result["error"],
+            "move_analysis": move_analysis
         }
     
     # Create new game state
@@ -117,7 +123,8 @@ def make_move(game, san_move):
     
     return {
         "success": True,
-        "new_game": new_game
+        "new_game": new_game,
+        "move_analysis": move_analysis
     }
 
 

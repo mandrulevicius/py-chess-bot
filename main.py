@@ -9,6 +9,7 @@ from src.ui.console_interface import (
     show_error, show_help, show_move_history, show_legal_moves, 
     show_game_status, clear_screen
 )
+from src.ui.sound_manager import get_sound_manager, initialize_sound_system
 
 
 def parse_args():
@@ -20,6 +21,12 @@ def parse_args():
                        default='white', help='Human player color (default=white)')
     parser.add_argument('--gui', '-g', action='store_true',
                        help='Use PyGame GUI instead of console interface')
+    parser.add_argument('--sound', '-s', action='store_true', default=True,
+                       help='Enable sound effects (default=True)')
+    parser.add_argument('--no-sound', action='store_false', dest='sound',
+                       help='Disable sound effects')
+    parser.add_argument('--volume', '-v', type=float, default=0.7, 
+                       help='Sound volume (0.0-1.0, default=0.7)')
     return parser.parse_args()
 
 
@@ -102,8 +109,20 @@ def human_turn(game):
             move_result = make_move(game, user_input)
             
             if move_result['success']:
+                # Play appropriate sound effect
+                sound_manager = get_sound_manager()
+                analysis = move_result.get('move_analysis', {})
+                sound_manager.play_move_sound(
+                    is_capture=analysis.get('is_capture', False),
+                    is_check=analysis.get('is_check', False),
+                    is_checkmate=analysis.get('is_checkmate', False),
+                    is_castle=analysis.get('is_castle', False),
+                    is_promotion=analysis.get('is_promotion', False)
+                )
                 return move_result
             else:
+                sound_manager = get_sound_manager()
+                sound_manager.play_error_sound()
                 show_error(move_result['error'])
                 show_message("Type 'help' for assistance or 'legal' to see valid moves.")
                 
@@ -140,6 +159,17 @@ def ai_turn(game, ai):
         if not move_result['success']:
             show_error(f"AI made invalid move: {move_result['error']}")
             sys.exit(1)
+        
+        # Play appropriate sound effect for AI move
+        sound_manager = get_sound_manager()
+        analysis = move_result.get('move_analysis', {})
+        sound_manager.play_move_sound(
+            is_capture=analysis.get('is_capture', False),
+            is_check=analysis.get('is_check', False),
+            is_checkmate=analysis.get('is_checkmate', False),
+            is_castle=analysis.get('is_castle', False),
+            is_promotion=analysis.get('is_promotion', False)
+        )
             
         return move_result
         
@@ -193,6 +223,10 @@ def main():
     # Parse command line arguments
     args = parse_args()
     
+    # Initialize sound system based on command line arguments
+    volume = max(0.0, min(1.0, args.volume))  # Clamp volume to valid range
+    initialize_sound_system(enabled=args.sound, volume=volume)
+    
     # Setup game
     game, ai = setup_game(difficulty=args.difficulty)
     
@@ -221,6 +255,10 @@ def main():
         clear_screen()
         display_welcome()
         
+        # Initialize sound and play game start sound
+        sound_manager = get_sound_manager()
+        sound_manager.play_game_start_sound()
+        
         show_message(f"Setting up game with AI difficulty {args.difficulty}...")
         show_message(f"You are playing as {args.human_color}.")
         show_message("Game started! Type 'help' for commands.\n")
@@ -233,6 +271,7 @@ def main():
                 
                 # Check if game is over
                 if is_game_over(game):
+                    sound_manager.play_game_end_sound()
                     show_game_result(game)
                     break
                 

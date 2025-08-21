@@ -13,15 +13,37 @@ def test_parse_command_line_args_default():
         
         assert args.difficulty == 8
         assert args.human_color == 'white'
+        assert args.sound == True
+        assert args.volume == 0.7
 
 
 def test_parse_command_line_args_custom():
     """Test parsing custom command line arguments."""
-    with patch('sys.argv', ['main.py', '--difficulty', '15', '--color', 'black']):
+    with patch('sys.argv', ['main.py', '--difficulty', '15', '--color', 'black', '--no-sound', '--volume', '0.5']):
         args = main.parse_args()
         
         assert args.difficulty == 15
         assert args.human_color == 'black'
+        assert args.sound == False
+        assert args.volume == 0.5
+
+
+def test_parse_sound_arguments():
+    """Test parsing sound-related arguments."""
+    # Test --sound flag
+    with patch('sys.argv', ['main.py', '--sound']):
+        args = main.parse_args()
+        assert args.sound == True
+    
+    # Test --no-sound flag
+    with patch('sys.argv', ['main.py', '--no-sound']):
+        args = main.parse_args()
+        assert args.sound == False
+    
+    # Test volume setting
+    with patch('sys.argv', ['main.py', '--volume', '0.3']):
+        args = main.parse_args()
+        assert args.volume == 0.3
 
 
 def test_setup_game_default():

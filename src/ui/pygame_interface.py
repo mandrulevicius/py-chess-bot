@@ -6,6 +6,7 @@ import os
 from typing import Optional, Tuple, List
 from ..game.game_loop import get_current_player, get_game_status, get_legal_moves
 from ..game.board_state import get_board_fen
+from .sound_manager import get_sound_manager
 
 
 # Constants
@@ -770,6 +771,10 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     from ..game.game_loop import make_move, get_current_player, get_game_status
     from ..ai.stockfish_ai import get_ai_move, cleanup_ai
     
+    # Get sound manager (already initialized in main)
+    sound_manager = get_sound_manager()
+    sound_manager.play_game_start_sound()
+    
     # Use provided screen/clock or create new ones
     if screen is None or clock is None:
         gui = GameGUI()
@@ -788,10 +793,17 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
         gui.render(game)
         pygame.display.flip()
         
+        game_ended_sound_played = False
+        
         while gui.is_running():
             # Check if game is over
             game_status = get_game_status(game)
             if not game_status['active']:
+                # Play game end sound once
+                if not game_ended_sound_played:
+                    sound_manager.play_game_end_sound()
+                    game_ended_sound_played = True
+                
                 # Game is over, just render and wait for quit
                 gui.render(game)
                 gui.clock.tick(60)
@@ -819,8 +831,19 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                     if move_result['success']:
                         game = move_result['new_game']
                         print(f"Move successful: {move_input}")
+                        
+                        # Play appropriate sound effect
+                        analysis = move_result.get('move_analysis', {})
+                        sound_manager.play_move_sound(
+                            is_capture=analysis.get('is_capture', False),
+                            is_check=analysis.get('is_check', False),
+                            is_checkmate=analysis.get('is_checkmate', False),
+                            is_castle=analysis.get('is_castle', False),
+                            is_promotion=analysis.get('is_promotion', False)
+                        )
                     else:
                         print(f"Invalid move: {move_result['error']}")
+                        sound_manager.play_error_sound()
             else:
                 # AI turn - first render current position, then let AI think
                 gui.render(game)
@@ -855,6 +878,16 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                         if move_result['success']:
                             game = move_result['new_game']
                             ai_move_successful = True
+                            
+                            # Play appropriate sound effect for AI move
+                            analysis = move_result.get('move_analysis', {})
+                            sound_manager.play_move_sound(
+                                is_capture=analysis.get('is_capture', False),
+                                is_check=analysis.get('is_check', False),
+                                is_checkmate=analysis.get('is_checkmate', False),
+                                is_castle=analysis.get('is_castle', False),
+                                is_promotion=analysis.get('is_promotion', False)
+                            )
                             break
                         else:
                             print(f"AI made invalid move: {move_result['error']}")

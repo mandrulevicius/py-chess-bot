@@ -3,6 +3,7 @@
 import os
 import sys
 from ..game.game_loop import get_current_player, get_game_status, get_legal_moves, get_move_history
+from .sound_manager import get_sound_manager
 
 
 def display_welcome():
