@@ -10,8 +10,14 @@ class TestMouseHandler:
     
     def test_screen_to_board_coords_valid(self):
         """Test valid screen coordinate conversion."""
-        # Test click in top-left square (a8)
-        result = MouseHandler.screen_to_board_coords(100, 100)  # Within board bounds
+        # Test click in top-left square (a8) normal orientation
+        result = MouseHandler.screen_to_board_coords(100, 100, flipped=False)  # Within board bounds
+        assert result is not None
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        
+        # Test flipped orientation
+        result = MouseHandler.screen_to_board_coords(100, 100, flipped=True)  # Within board bounds
         assert result is not None
         assert isinstance(result, tuple)
         assert len(result) == 2
@@ -19,7 +25,10 @@ class TestMouseHandler:
     def test_screen_to_board_coords_invalid(self):
         """Test invalid screen coordinate conversion."""
         # Test click outside board
-        result = MouseHandler.screen_to_board_coords(10, 10)  # Outside board
+        result = MouseHandler.screen_to_board_coords(10, 10, flipped=False)  # Outside board
+        assert result is None
+        
+        result = MouseHandler.screen_to_board_coords(10, 10, flipped=True)  # Outside board
         assert result is None
     
     def test_board_coords_to_algebraic(self):
@@ -48,6 +57,7 @@ class TestChessboardRenderer:
         assert renderer.screen == mock_screen
         assert renderer.selected_square is None
         assert renderer.legal_moves == []
+        assert renderer.flipped is False
     
     def test_set_selected_square(self):
         """Test setting selected square."""
@@ -68,6 +78,22 @@ class TestChessboardRenderer:
         moves = [(1, 2), (3, 4), (5, 6)]
         renderer.set_legal_moves(moves)
         assert renderer.legal_moves == moves
+    
+    def test_set_flipped(self):
+        """Test setting board flip state."""
+        mock_screen = Mock()
+        renderer = ChessboardRenderer(mock_screen)
+        
+        # Initially not flipped
+        assert renderer.flipped is False
+        
+        # Set to flipped
+        renderer.set_flipped(True)
+        assert renderer.flipped is True
+        
+        # Set back to normal
+        renderer.set_flipped(False)
+        assert renderer.flipped is False
 
 
 class TestPieceAssets:

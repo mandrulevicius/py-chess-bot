@@ -5,12 +5,15 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 ## 🎯 Features
 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI
+- **Dual Interface Support** - Both Console and PyGame GUI interfaces
+- **Interactive GUI** - Professional chess board with piece graphics and game setup screen
+- **Smart Move Highlighting** - Visual indicators for legal moves when pieces are selected
+- **Adaptive Board Orientation** - Board automatically flips when playing as black
 - **Standard Chess Notation** - Full SAN (Standard Algebraic Notation) support  
 - **Comprehensive Rule Engine** - All chess rules including castling, en passant, promotion
 - **Configurable AI Difficulty** - 21 levels from beginner to grandmaster strength
-- **Console Interface** - Clean, educational interface with move history
 - **Educational Focus** - Detailed error messages and notation help
-- **Test Coverage** - 58 passing tests ensuring reliability
+- **Test Coverage** - 72+ passing tests ensuring reliability
 
 ## 🚀 Quick Start
 
@@ -38,21 +41,43 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 
 ### Run the Game
 
+**GUI Mode (Recommended):**
+```bash
+python main.py --gui
+```
+
+**Console Mode:**
 ```bash
 python main.py
 ```
 
 **Command line options:**
 ```bash
-python main.py --difficulty 15 --color black
+python main.py --gui --difficulty 15 --color black
 ```
 
+- `--gui` / `-g`: Use PyGame GUI interface (default: console)
 - `--difficulty` / `-d`: AI difficulty level (0-20, default: 8)
 - `--color` / `-c`: Your color (white/black, default: white)
 
 ## 🎮 How to Play
 
-### Starting the Game
+### GUI Mode (PyGame Interface)
+
+**Game Setup:**
+- Use the interactive setup screen to select AI difficulty (0-20) and your color
+- Board automatically orients with your pieces at the bottom
+- Click "Start Game" to begin
+
+**Playing:**
+- Click on a piece to select it (shows yellow highlight)
+- Legal destination squares are highlighted with semi-transparent white
+- Click on a highlighted square to move the piece there
+- The game shows whose turn it is at the top
+
+### Console Mode
+
+**Starting the Game:**
 ```
 ==================================================
       Welcome to PyChessBot!
@@ -97,7 +122,8 @@ src/
 ├── ai/             # AI integration
 │   └── stockfish_ai.py     # Stockfish engine wrapper
 └── ui/             # User interface
-    └── console_interface.py # Console I/O and display
+    ├── console_interface.py # Console I/O and display
+    └── pygame_interface.py  # PyGame GUI with interactive chess board
 ```
 
 ### Key Design Principles
@@ -126,13 +152,14 @@ python -m pytest tests/ --cov=src
 ```
 
 **Test Coverage:**
-- 58 total tests across all components
+- 72+ total tests across all components
 - Move parsing and validation (13 tests)
 - Board state management (7 tests)
 - Game loop functionality (7 tests)
 - Stockfish AI integration (8 tests)
 - Console interface (12 tests)
-- Main application (10 tests)
+- PyGame GUI interface (15 tests)
+- Main application (10+ tests)
 
 ## 🔧 Development
 
@@ -167,10 +194,12 @@ PyChessBot/
 ├── src/                    # Source code
 │   ├── game/              # Chess engine
 │   ├── ai/                # AI integration  
-│   └── ui/                # User interface
-├── tests/                 # Test suite
+│   └── ui/                # User interfaces (console + GUI)
+├── tests/                 # Comprehensive test suite (72+ tests)
 ├── docs/                  # Design documents and development history
-├── main.py               # Main application
+├── assets/                # Game assets (chess piece images)
+│   └── pieces/           # Professional PNG chess pieces
+├── main.py               # Main application entry point
 ├── requirements.txt      # Python dependencies
 ├── CLAUDE.md            # Development guidelines
 └── README.md            # This file
@@ -180,11 +209,13 @@ PyChessBot/
 
 PyChessBot is designed for learning:
 
+- **Visual Learning** - Interactive GUI shows legal moves when pieces are selected
 - **Clear Error Messages** - Explains why moves are invalid
-- **Notation Help** - Interactive examples of chess notation
+- **Notation Help** - Interactive examples of chess notation  
 - **Move Validation** - Shows legal moves when confused
 - **Game Analysis** - Position display with FEN notation
-- **Clean Code** - Well-documented, readable implementation
+- **Adaptive Interface** - Board orientation adjusts to player perspective
+- **Clean Code** - Well-documented, readable implementation following TDD
 
 ## 🤝 Contributing
 

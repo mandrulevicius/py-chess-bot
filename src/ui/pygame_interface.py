@@ -41,14 +41,16 @@ class ChessboardRenderer:
         self.screen = screen
         self.selected_square = None
         self.legal_moves = []
+        self.flipped = False  # Whether board should be flipped (black at bottom)
     
     def draw_board(self):
         """Draw the chess board squares."""
         for row in range(8):
             for col in range(8):
                 # Calculate square position
+                display_row = 7 - row if self.flipped else row
                 x = BOARD_OFFSET_X + col * SQUARE_SIZE
-                y = BOARD_OFFSET_Y + row * SQUARE_SIZE
+                y = BOARD_OFFSET_Y + display_row * SQUARE_SIZE
                 
                 # Determine square color (light/dark)
                 is_light_square = (row + col) % 2 == 0
@@ -73,7 +75,10 @@ class ChessboardRenderer:
         
         # Draw ranks (1-8) on left side
         for row in range(8):
-            rank_number = str(8 - row)  # Chess board is numbered 8-1 from top to bottom
+            if self.flipped:
+                rank_number = str(row + 1)  # When flipped, show 1-8 from top to bottom
+            else:
+                rank_number = str(8 - row)  # Normal: 8-1 from top to bottom
             x = BOARD_OFFSET_X - 20
             y = BOARD_OFFSET_Y + row * SQUARE_SIZE + SQUARE_SIZE // 2
             
@@ -85,8 +90,9 @@ class ChessboardRenderer:
         """Draw highlight for selected square."""
         if self.selected_square:
             row, col = self.selected_square
+            display_row = 7 - row if self.flipped else row
             x = BOARD_OFFSET_X + col * SQUARE_SIZE
-            y = BOARD_OFFSET_Y + row * SQUARE_SIZE
+            y = BOARD_OFFSET_Y + display_row * SQUARE_SIZE
             
             # Create a surface with alpha for transparency
             highlight_surface = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
@@ -97,11 +103,15 @@ class ChessboardRenderer:
         """Draw highlights for legal moves from selected square."""
         for move_square in self.legal_moves:
             row, col = move_square
-            x = BOARD_OFFSET_X + col * SQUARE_SIZE + SQUARE_SIZE // 2
-            y = BOARD_OFFSET_Y + row * SQUARE_SIZE + SQUARE_SIZE // 2
+            display_row = 7 - row if self.flipped else row
+            x = BOARD_OFFSET_X + col * SQUARE_SIZE
+            y = BOARD_OFFSET_Y + display_row * SQUARE_SIZE
             
-            # Draw a small circle to indicate legal move
-            pygame.draw.circle(self.screen, (0, 255, 0), (x, y), 10)
+            # Draw a semi-transparent white highlight over the entire square
+            # Create a surface with alpha for transparency
+            highlight_surface = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
+            highlight_surface.fill((255, 255, 255, 100))  # White with transparency
+            self.screen.blit(highlight_surface, (x, y))
     
     def set_selected_square(self, square: Optional[Tuple[int, int]]):
         """Set the currently selected square."""
@@ -110,6 +120,10 @@ class ChessboardRenderer:
     def set_legal_moves(self, moves: List[Tuple[int, int]]):
         """Set the list of legal move squares to highlight."""
         self.legal_moves = moves
+    
+    def set_flipped(self, flipped: bool):
+        """Set whether the board should be flipped (black at bottom)."""
+        self.flipped = flipped
 
 
 class PieceAssets:
@@ -253,14 +267,17 @@ class MouseHandler:
     """Handles mouse input and converts to chess coordinates."""
     
     @staticmethod
-    def screen_to_board_coords(mouse_x: int, mouse_y: int) -> Optional[Tuple[int, int]]:
+    def screen_to_board_coords(mouse_x: int, mouse_y: int, flipped: bool = False) -> Optional[Tuple[int, int]]:
         """Convert screen coordinates to board coordinates (row, col)."""
         # Check if click is within board bounds
         if (BOARD_OFFSET_X <= mouse_x < BOARD_OFFSET_X + BOARD_SIZE and
             BOARD_OFFSET_Y <= mouse_y < BOARD_OFFSET_Y + BOARD_SIZE):
             
             col = (mouse_x - BOARD_OFFSET_X) // SQUARE_SIZE
-            row = (mouse_y - BOARD_OFFSET_Y) // SQUARE_SIZE
+            display_row = (mouse_y - BOARD_OFFSET_Y) // SQUARE_SIZE
+            
+            # Convert display row to logical row based on flip state
+            row = 7 - display_row if flipped else display_row
             
             # Ensure coordinates are within valid range
             if 0 <= row < 8 and 0 <= col < 8:
@@ -529,8 +546,9 @@ class GameGUI:
                 # Get piece surface and draw it
                 piece_surface = self.pieces.get_piece_surface(piece_type, color)
                 if piece_surface:
+                    display_row = 7 - row if self.renderer.flipped else row
                     x = BOARD_OFFSET_X + col * SQUARE_SIZE + SQUARE_SIZE // 2
-                    y = BOARD_OFFSET_Y + row * SQUARE_SIZE + SQUARE_SIZE // 2
+                    y = BOARD_OFFSET_Y + display_row * SQUARE_SIZE + SQUARE_SIZE // 2
                     
                     piece_rect = piece_surface.get_rect(center=(x, y))
                     self.screen.blit(piece_surface, piece_rect)
@@ -547,7 +565,7 @@ class GameGUI:
     
     def handle_click(self, mouse_pos: Tuple[int, int], game) -> Optional[str]:
         """Handle mouse click and return move in SAN notation if valid."""
-        board_coords = MouseHandler.screen_to_board_coords(*mouse_pos)
+        board_coords = MouseHandler.screen_to_board_coords(*mouse_pos, self.renderer.flipped)
         
         if board_coords is None:
             return None
@@ -557,17 +575,22 @@ class GameGUI:
         
         if self.selected_square is None:
             # First click - select a square
-            self.selected_square = board_coords
-            self.renderer.set_selected_square(board_coords)
-            
-            # Get legal moves for this square and highlight them
+            # Get legal moves for this square first
             legal_moves = self._get_legal_moves_for_square(game, algebraic_pos)
-            legal_move_coords = []
-            for move in legal_moves:
-                move_row, move_col = self._algebraic_to_coords(move)
-                legal_move_coords.append((move_row, move_col))
             
-            self.renderer.set_legal_moves(legal_move_coords)
+            # Only select the square if it has legal moves
+            if legal_moves:
+                self.selected_square = board_coords
+                self.renderer.set_selected_square(board_coords)
+                
+                # Convert legal moves to coordinates and highlight them
+                legal_move_coords = []
+                for move in legal_moves:
+                    move_row, move_col = self._algebraic_to_coords(move)
+                    legal_move_coords.append((move_row, move_col))
+                
+                self.renderer.set_legal_moves(legal_move_coords)
+                
             return None
         else:
             # Second click - attempt to make a move
@@ -589,19 +612,36 @@ class GameGUI:
     def _get_legal_moves_for_square(self, game, square: str) -> List[str]:
         """Get legal moves from a specific square."""
         try:
-            # Get all legal moves from the game
-            legal_moves = get_legal_moves(game)
+            import chess
             
-            # Filter moves that start from the specified square
-            # This is a simplified approach - we'd need to enhance this
-            # to properly parse SAN moves and identify source squares
-            square_moves = []
+            # Convert algebraic square to chess square index
+            source_square = chess.parse_square(square)
             
-            # For now, return empty list - this needs proper implementation
-            # with SAN move parsing to identify source squares
-            return square_moves
+            # Get the board from game
+            board = game['board']
             
-        except Exception:
+            # Check if there's a piece on this square that belongs to current player
+            piece = board.piece_at(source_square)
+            if piece is None:
+                return []  # No piece on this square
+            
+            # Check if the piece belongs to the current player
+            if piece.color != board.turn:
+                return []  # Not current player's piece
+            
+            # Get all legal moves that start from the specified square
+            legal_destination_squares = []
+            
+            for move in board.legal_moves:
+                if move.from_square == source_square:
+                    # Convert destination square back to algebraic notation
+                    dest_square = chess.square_name(move.to_square)
+                    legal_destination_squares.append(dest_square)
+            
+            return legal_destination_squares
+            
+        except Exception as e:
+            print(f"Error getting legal moves for square {square}: {e}")
             return []
     
     def _algebraic_to_coords(self, algebraic: str) -> Tuple[int, int]:
@@ -740,7 +780,14 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
         gui.screen = screen
         gui.clock = clock
     
+    # Set board orientation based on player color
+    gui.renderer.set_flipped(human_color == 'black')
+    
     try:
+        # Always render the initial position first
+        gui.render(game)
+        pygame.display.flip()
+        
         while gui.is_running():
             # Check if game is over
             game_status = get_game_status(game)
@@ -775,7 +822,10 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                     else:
                         print(f"Invalid move: {move_result['error']}")
             else:
-                # AI turn
+                # AI turn - first render current position, then let AI think
+                gui.render(game)
+                pygame.display.flip()
+                
                 print("AI is thinking...")
                 
                 # Handle GUI events (but don't process moves)
