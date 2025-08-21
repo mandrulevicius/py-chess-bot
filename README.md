@@ -5,13 +5,15 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 ## 🎯 Features
 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI
-- **Dual Interface Support** - Both Console and PyGame GUI interfaces
+- **Triple Interface Support** - GUI, Console, and innovative Dual Mode (console + GUI)
 - **Interactive GUI** - Professional chess board with piece graphics and game setup screen
+- **Dual Mode** - Type moves in console, see them instantly in GUI window
+- **Sound Effects** - Audio feedback for moves, captures, check, and checkmate
 - **Move Highlighting** - Visual indicators for legal moves when pieces are selected
 - **Standard Chess Notation** - Full SAN (Standard Algebraic Notation) support  
 - **Comprehensive Rule Engine** - All chess rules including castling, en passant, promotion
 - **Configurable AI Difficulty** - 21 levels from beginner to grandmaster strength
-- **Test Coverage** - 72+ passing tests ensuring reliability
+- **Test Coverage** - 100+ passing tests ensuring reliability
 
 ## 🚀 Quick Start
 
@@ -49,14 +51,20 @@ python main.py
 python main.py --console
 ```
 
+**Dual Mode (Console + GUI):**
+```bash
+python main.py --dual
+```
+
 **Command line options:**
 ```bash
 python main.py --difficulty 15 --color black
-python main.py --console --no-sound --volume 0.5
+python main.py --dual --no-sound --volume 0.5
 ```
 
 - `--gui` / `-g`: Use PyGame GUI interface (default)
-- `--console` / `-c`: Use console interface instead of GUI
+- `--console` / `-c`: Use console interface only
+- `--dual`: Use console input with GUI visualization (best of both worlds!)
 - `--difficulty` / `-d`: AI difficulty level (0-20, default: 8)
 - `--color`: Your color (white/black, default: white)
 - `--sound` / `-s`: Enable sound effects (default)
@@ -102,6 +110,20 @@ Instructions:
 - `e8=Q` - Pawn promotion to Queen
 - `Qh5+` - Queen to h5 with check
 - `Nf7#` - Knight to f7, checkmate
+
+### Dual Mode (Console + GUI)
+
+**The best of both worlds!** Type moves in the console while watching them appear in a beautiful GUI window.
+
+**Features:**
+- **Console input** - Type moves using standard chess notation
+- **Real-time GUI visualization** - See every move instantly reflected in the visual board
+- **Full command support** - All console commands work (help, history, legal, etc.)
+- **Sound effects** - Audio feedback for all moves
+- **Board orientation** - GUI automatically shows your pieces at the bottom
+- **Dual exit options** - Close GUI window or type 'quit' in console
+
+Perfect for developers who love command-line interfaces but want visual feedback!
 
 ### In-Game Commands
 - `help` - Show help and notation examples
