@@ -343,10 +343,6 @@ class GameGUI:
     
     def _coords_to_san_move(self, game, from_square: str, to_square: str) -> str:
         """Convert coordinate move to SAN notation."""
-        # For now, we'll try basic moves and let the existing validation handle it
-        # This is a simplified approach that works for basic moves
-        
-        # Get the piece at the from_square
         board = game['board']
         
         try:
@@ -359,13 +355,19 @@ class GameGUI:
             # Create a move object
             move = chess.Move(from_chess_square, to_chess_square)
             
+            # Check if the move is legal before converting to SAN
+            if move not in board.legal_moves:
+                # Return None to indicate invalid move - don't fall back to anything
+                return None
+            
             # Convert to SAN
             san_move = board.san(move)
             return san_move
             
-        except Exception:
-            # Fallback to basic move notation
-            return to_square
+        except Exception as e:
+            # Don't fall back to basic notation - return None for invalid moves
+            print(f"Move conversion error: {e}")
+            return None
     
     def render(self, game):
         """Render the complete game state."""
@@ -435,7 +437,7 @@ def run_gui_game(game, ai, human_color='white'):
                 
                 if move_input == "quit":
                     break
-                elif move_input:
+                elif move_input is not None:
                     # Process human move
                     print(f"Human move: {move_input}")
                     move_result = make_move(game, move_input)
@@ -454,11 +456,20 @@ def run_gui_game(game, ai, human_color='white'):
                 if gui_event == "quit":
                     break
                 
-                # Get AI move
-                try:
-                    ai_move_result = get_ai_move(ai, game, time_limit=3.0)
-                    
-                    if ai_move_result['success']:
+                # Get AI move with retry logic
+                max_retries = 3
+                ai_move_successful = False
+                
+                for retry_count in range(max_retries):
+                    try:
+                        ai_move_result = get_ai_move(ai, game, time_limit=3.0)
+                        
+                        if not ai_move_result['success']:
+                            print(f"AI error: {ai_move_result['error']}")
+                            if retry_count == max_retries - 1:
+                                break  # Exit game after max retries
+                            continue
+                        
                         ai_move = ai_move_result['move']
                         print(f"AI plays: {ai_move}")
                         
@@ -466,15 +477,22 @@ def run_gui_game(game, ai, human_color='white'):
                         
                         if move_result['success']:
                             game = move_result['new_game']
+                            ai_move_successful = True
+                            break
                         else:
                             print(f"AI made invalid move: {move_result['error']}")
-                            break
-                    else:
-                        print(f"AI error: {ai_move_result['error']}")
-                        break
+                            if retry_count < max_retries - 1:
+                                print(f"Retrying AI move... (attempt {retry_count + 2}/{max_retries})")
+                            else:
+                                print("AI failed to make valid move after maximum retries")
                         
-                except Exception as e:
-                    print(f"AI turn failed: {str(e)}")
+                    except Exception as e:
+                        print(f"AI turn failed: {str(e)}")
+                        if retry_count < max_retries - 1:
+                            print(f"Retrying after error... (attempt {retry_count + 2}/{max_retries})")
+                        
+                if not ai_move_successful:
+                    print("AI unable to make valid move. Game ending.")
                     break
             
             # Render current state

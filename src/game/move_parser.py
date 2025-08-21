@@ -60,11 +60,12 @@ def parse_san_move(san_notation):
         result["capture"] = True
         parts = san_notation.split('x')
         if len(parts) != 2:
-            return {"valid": False, "error": f"Invalid capture notation: {san_notation}x"}
+            return {"valid": False, "error": f"Invalid capture notation: {san_notation}"}
         piece_part, destination = parts
     else:
-        piece_part = san_notation[:-2] if len(san_notation) > 2 else ""
+        # Extract destination square (last 2 characters)
         destination = san_notation[-2:]
+        piece_part = san_notation[:-2]
     
     # Validate destination square
     if not re.match(r'^[a-h][1-8]$', destination):
@@ -72,7 +73,7 @@ def parse_san_move(san_notation):
     
     result["destination"] = destination
     
-    # Determine piece type
+    # Determine piece type with disambiguation handling
     if not piece_part:  # Simple pawn move
         result["piece"] = "pawn"
     elif piece_part in ['K', 'Q', 'R', 'B', 'N']:  # Simple piece move
@@ -80,6 +81,10 @@ def parse_san_move(san_notation):
         result["piece"] = piece_names[piece_part]
     elif len(piece_part) == 1 and piece_part in 'abcdefgh':  # Pawn capture (e.g., "e" in "exd5")
         result["piece"] = "pawn"
+    elif len(piece_part) >= 2 and piece_part[0] in ['K', 'Q', 'R', 'B', 'N']:  # Disambiguated piece move (e.g., "Nb" in "Nbd7")
+        piece_names = {'K': 'king', 'Q': 'queen', 'R': 'rook', 'B': 'bishop', 'N': 'knight'}
+        result["piece"] = piece_names[piece_part[0]]
+        result["disambiguation"] = piece_part[1:]  # Store the disambiguation part
     else:
         return {"valid": False, "error": f"Invalid piece notation: {piece_part}"}
     

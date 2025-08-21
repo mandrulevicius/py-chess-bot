@@ -169,6 +169,13 @@ def get_ai_move(ai, game, time_limit=3.0):
             move_obj = chess.Move.from_uci(uci_move)
             san_move = board.san(move_obj)
             
+            # Debug: Check for potential string issues
+            if len(san_move) < 2:
+                return {
+                    "success": False,
+                    "error": f"Generated SAN move too short: '{san_move}' from UCI: '{uci_move}'"
+                }
+            
             return {
                 "success": True,
                 "move": san_move
@@ -177,7 +184,7 @@ def get_ai_move(ai, game, time_limit=3.0):
         except Exception as e:
             return {
                 "success": False,
-                "error": f"Failed to convert move to SAN: {str(e)}"
+                "error": f"Failed to convert move to SAN: {str(e)} (UCI: '{uci_move}')"
             }
     
     except Exception as e:
