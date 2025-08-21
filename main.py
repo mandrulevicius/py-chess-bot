@@ -197,11 +197,17 @@ def main():
     game, ai = setup_game(difficulty=args.difficulty)
     
     if args.gui:
-        # Use PyGame GUI
+        # Use PyGame GUI with setup screen
         try:
-            from src.ui.pygame_interface import run_gui_game
-            print(f"Starting PyChessBot GUI - Difficulty: {args.difficulty}, You are: {args.human_color}")
-            run_gui_game(game, ai, human_color=args.human_color)
+            from src.ui.pygame_interface import run_gui_game_with_setup, run_gui_game
+            if args.difficulty != 8 or args.human_color != 'white':
+                # If command line args provided, skip setup screen
+                print(f"Starting PyChessBot GUI - Difficulty: {args.difficulty}, You are: {args.human_color}")
+                run_gui_game(game, ai, human_color=args.human_color)
+            else:
+                # Show setup screen
+                print("Starting PyChessBot with setup screen...")
+                run_gui_game_with_setup()
         except ImportError as e:
             print(f"GUI not available: {e}")
             print("Install pygame with: pip install pygame")

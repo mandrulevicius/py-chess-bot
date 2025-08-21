@@ -162,3 +162,73 @@ def test_constants_defined():
     assert len(BLACK_SQUARE) == 3  # RGB tuple
     assert len(BACKGROUND) == 3   # RGB tuple
     assert len(TEXT_COLOR) == 3   # RGB tuple
+
+
+class TestGameSetup:
+    """Test game setup screen functionality."""
+    
+    @patch('pygame.font.Font')
+    @patch('pygame.display.set_mode')
+    def test_setup_initialization(self, mock_display, mock_font):
+        """Test setup screen initialization."""
+        mock_screen = Mock()
+        mock_font.return_value = Mock()
+        
+        from src.ui.pygame_interface import GameSetup
+        setup = GameSetup(mock_screen)
+        
+        # Check initial values
+        assert setup.difficulty == 8  # Default medium
+        assert setup.human_color == 'white'  # Default white
+        assert not setup.setup_complete
+        assert not setup.dragging_slider
+    
+    @patch('pygame.font.Font')
+    @patch('pygame.display.set_mode')
+    def test_setup_settings(self, mock_display, mock_font):
+        """Test setup settings retrieval."""
+        mock_screen = Mock()
+        mock_font.return_value = Mock()
+        
+        from src.ui.pygame_interface import GameSetup
+        setup = GameSetup(mock_screen)
+        
+        # Test default settings
+        settings = setup.get_settings()
+        expected = {'difficulty': 8, 'human_color': 'white'}
+        assert settings == expected
+        
+        # Test modified settings
+        setup.difficulty = 15
+        setup.human_color = 'black'
+        
+        settings = setup.get_settings()
+        expected = {'difficulty': 15, 'human_color': 'black'}
+        assert settings == expected
+    
+    @patch('pygame.font.Font')
+    @patch('pygame.display.set_mode')
+    def test_difficulty_descriptions(self, mock_display, mock_font):
+        """Test that all difficulty levels have descriptions."""
+        mock_screen = Mock()
+        mock_font.return_value = Mock()
+        
+        from src.ui.pygame_interface import GameSetup
+        setup = GameSetup(mock_screen)
+        
+        # Check that all levels 0-20 have descriptions
+        for level in range(21):
+            assert level in setup.difficulty_descriptions
+            description = setup.difficulty_descriptions[level]
+            assert isinstance(description, str)
+            assert len(description) > 0
+
+
+def test_setup_functions_importable():
+    """Test that setup functions can be imported."""
+    try:
+        from src.ui.pygame_interface import run_gui_game_with_setup, GameSetup
+        assert callable(run_gui_game_with_setup)
+        assert GameSetup is not None
+    except ImportError:
+        pytest.skip("PyGame not available")

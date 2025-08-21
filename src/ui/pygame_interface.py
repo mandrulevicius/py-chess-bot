@@ -23,6 +23,16 @@ LEGAL_MOVE_HIGHLIGHT = (0, 255, 0, 128)  # Green with transparency
 BACKGROUND = (49, 46, 43)
 TEXT_COLOR = (255, 255, 255)
 
+# Setup UI Colors
+SETUP_BACKGROUND = (40, 40, 40)
+SETUP_PANEL = (60, 60, 60)
+BUTTON_COLOR = (80, 80, 80)
+BUTTON_HOVER = (100, 100, 100)
+BUTTON_ACTIVE = (120, 120, 120)
+SLIDER_TRACK = (70, 70, 70)
+SLIDER_HANDLE = (150, 150, 150)
+ACCENT_COLOR = (100, 149, 237)  # Cornflower blue
+
 
 class ChessboardRenderer:
     """Handles rendering the chess board and visual elements."""
@@ -266,6 +276,196 @@ class MouseHandler:
         return file + rank
 
 
+class GameSetup:
+    """Handles the game setup screen for difficulty and color selection."""
+    
+    def __init__(self, screen: pygame.Surface):
+        self.screen = screen
+        self.font_title = pygame.font.Font(None, 48)
+        self.font_large = pygame.font.Font(None, 36)
+        self.font_medium = pygame.font.Font(None, 28)
+        self.font_small = pygame.font.Font(None, 24)
+        
+        # Setup state
+        self.difficulty = 8  # Default medium difficulty
+        self.human_color = 'white'  # Default human plays white
+        self.difficulty_descriptions = {
+            0: "Beginner (Random moves)",
+            1: "Very Easy", 2: "Very Easy", 3: "Easy", 4: "Easy",
+            5: "Medium-Easy", 6: "Medium-Easy", 7: "Medium", 8: "Medium",
+            9: "Medium-Hard", 10: "Medium-Hard", 11: "Hard", 12: "Hard",
+            13: "Very Hard", 14: "Very Hard", 15: "Expert", 16: "Expert",
+            17: "Master", 18: "Master", 19: "Grandmaster", 20: "Maximum"
+        }
+        
+        # UI elements
+        self.slider_rect = pygame.Rect(250, 300, 300, 20)
+        self.slider_handle = pygame.Rect(0, 0, 20, 30)
+        self.white_button = pygame.Rect(250, 400, 120, 80)
+        self.black_button = pygame.Rect(430, 400, 120, 80)
+        self.start_button = pygame.Rect(300, 550, 200, 60)
+        
+        # Interaction state
+        self.dragging_slider = False
+        self.mouse_pos = (0, 0)
+        self.setup_complete = False
+        
+        self._update_slider_handle()
+    
+    def _update_slider_handle(self):
+        """Update slider handle position based on difficulty value."""
+        # Map difficulty (0-20) to slider position
+        slider_progress = self.difficulty / 20.0
+        handle_x = self.slider_rect.x + int(slider_progress * (self.slider_rect.width - self.slider_handle.width))
+        self.slider_handle.x = handle_x
+        self.slider_handle.centery = self.slider_rect.centery
+    
+    def handle_event(self, event) -> bool:
+        """Handle setup screen events. Returns True if setup is complete."""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click
+                self.mouse_pos = event.pos
+                
+                # Check slider
+                if self.slider_handle.collidepoint(event.pos):
+                    self.dragging_slider = True
+                    return False
+                
+                # Check color buttons
+                if self.white_button.collidepoint(event.pos):
+                    self.human_color = 'white'
+                    return False
+                elif self.black_button.collidepoint(event.pos):
+                    self.human_color = 'black'
+                    return False
+                
+                # Check start button
+                if self.start_button.collidepoint(event.pos):
+                    self.setup_complete = True
+                    return True
+        
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.dragging_slider = False
+        
+        elif event.type == pygame.MOUSEMOTION:
+            self.mouse_pos = event.pos
+            
+            if self.dragging_slider:
+                # Update difficulty based on mouse position
+                relative_x = event.pos[0] - self.slider_rect.x
+                relative_x = max(0, min(relative_x, self.slider_rect.width))
+                progress = relative_x / self.slider_rect.width
+                self.difficulty = int(progress * 20)
+                self._update_slider_handle()
+        
+        elif event.type == pygame.KEYDOWN:
+            # Keyboard controls for accessibility
+            if event.key == pygame.K_LEFT and self.difficulty > 0:
+                self.difficulty -= 1
+                self._update_slider_handle()
+            elif event.key == pygame.K_RIGHT and self.difficulty < 20:
+                self.difficulty += 1
+                self._update_slider_handle()
+            elif event.key == pygame.K_SPACE:
+                self.human_color = 'black' if self.human_color == 'white' else 'white'
+            elif event.key == pygame.K_RETURN:
+                self.setup_complete = True
+                return True
+        
+        return False
+    
+    def _is_mouse_over(self, rect: pygame.Rect) -> bool:
+        """Check if mouse is over a rectangle."""
+        return rect.collidepoint(self.mouse_pos)
+    
+    def render(self):
+        """Render the setup screen."""
+        # Clear screen
+        self.screen.fill(SETUP_BACKGROUND)
+        
+        # Title
+        title_text = self.font_title.render("PyChessBot - Game Setup", True, TEXT_COLOR)
+        title_rect = title_text.get_rect(center=(WINDOW_SIZE // 2, 80))
+        self.screen.blit(title_text, title_rect)
+        
+        # Difficulty section
+        diff_title = self.font_large.render("AI Difficulty", True, TEXT_COLOR)
+        self.screen.blit(diff_title, (250, 200))
+        
+        # Difficulty slider track
+        pygame.draw.rect(self.screen, SLIDER_TRACK, self.slider_rect)
+        pygame.draw.rect(self.screen, TEXT_COLOR, self.slider_rect, 2)
+        
+        # Difficulty slider handle
+        handle_color = SLIDER_HANDLE
+        if self._is_mouse_over(self.slider_handle) or self.dragging_slider:
+            handle_color = ACCENT_COLOR
+        pygame.draw.rect(self.screen, handle_color, self.slider_handle)
+        pygame.draw.rect(self.screen, TEXT_COLOR, self.slider_handle, 2)
+        
+        # Difficulty labels
+        easy_label = self.font_small.render("Easy", True, TEXT_COLOR)
+        self.screen.blit(easy_label, (250, 330))
+        hard_label = self.font_small.render("Hard", True, TEXT_COLOR)
+        hard_rect = hard_label.get_rect(topright=(550, 330))
+        self.screen.blit(hard_label, hard_rect)
+        
+        # Current difficulty description
+        diff_desc = f"Level {self.difficulty}: {self.difficulty_descriptions[self.difficulty]}"
+        desc_text = self.font_medium.render(diff_desc, True, ACCENT_COLOR)
+        desc_rect = desc_text.get_rect(center=(WINDOW_SIZE // 2, 360))
+        self.screen.blit(desc_text, desc_rect)
+        
+        # Color selection section
+        color_title = self.font_large.render("Your Color", True, TEXT_COLOR)
+        self.screen.blit(color_title, (250, 370))
+        
+        # White button
+        white_color = BUTTON_ACTIVE if self.human_color == 'white' else BUTTON_HOVER if self._is_mouse_over(self.white_button) else BUTTON_COLOR
+        pygame.draw.rect(self.screen, white_color, self.white_button)
+        pygame.draw.rect(self.screen, TEXT_COLOR, self.white_button, 3 if self.human_color == 'white' else 1)
+        
+        white_text = self.font_medium.render("White", True, TEXT_COLOR)
+        white_text_rect = white_text.get_rect(center=self.white_button.center)
+        self.screen.blit(white_text, white_text_rect)
+        
+        # Black button  
+        black_color = BUTTON_ACTIVE if self.human_color == 'black' else BUTTON_HOVER if self._is_mouse_over(self.black_button) else BUTTON_COLOR
+        pygame.draw.rect(self.screen, black_color, self.black_button)
+        pygame.draw.rect(self.screen, TEXT_COLOR, self.black_button, 3 if self.human_color == 'black' else 1)
+        
+        black_text = self.font_medium.render("Black", True, TEXT_COLOR)
+        black_text_rect = black_text.get_rect(center=self.black_button.center)
+        self.screen.blit(black_text, black_text_rect)
+        
+        # Start game button
+        start_color = BUTTON_HOVER if self._is_mouse_over(self.start_button) else ACCENT_COLOR
+        pygame.draw.rect(self.screen, start_color, self.start_button)
+        pygame.draw.rect(self.screen, TEXT_COLOR, self.start_button, 2)
+        
+        start_text = self.font_large.render("Start Game", True, TEXT_COLOR)
+        start_text_rect = start_text.get_rect(center=self.start_button.center)
+        self.screen.blit(start_text, start_text_rect)
+        
+        # Instructions
+        instructions = [
+            "Use mouse to adjust difficulty and select color",
+            "Keyboard: Arrow keys for difficulty, Space to switch color, Enter to start"
+        ]
+        for i, instruction in enumerate(instructions):
+            inst_text = self.font_small.render(instruction, True, (160, 160, 160))
+            inst_rect = inst_text.get_rect(center=(WINDOW_SIZE // 2, 680 + i * 25))
+            self.screen.blit(inst_text, inst_rect)
+    
+    def get_settings(self) -> dict:
+        """Get the selected game settings."""
+        return {
+            'difficulty': self.difficulty,
+            'human_color': self.human_color
+        }
+
+
 class GameGUI:
     """Main GUI class that coordinates all components."""
     
@@ -479,12 +679,66 @@ class GameGUI:
         pygame.quit()
 
 
-def run_gui_game(game, ai, human_color='white'):
+def run_gui_game_with_setup():
+    """Run the chess game with setup screen, then game."""
+    from ..game.game_loop import create_game, make_move, get_current_player, get_game_status
+    from ..ai.stockfish_ai import create_ai, get_ai_move, cleanup_ai
+    
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    pygame.display.set_caption("PyChessBot - Chess Game")
+    clock = pygame.time.Clock()
+    
+    # Show setup screen
+    setup = GameSetup(screen)
+    
+    print("Showing game setup screen...")
+    setup_complete = False
+    
+    while not setup_complete:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            
+            if setup.handle_event(event):
+                setup_complete = True
+        
+        setup.render()
+        pygame.display.flip()
+        clock.tick(60)
+    
+    # Get settings from setup
+    settings = setup.get_settings()
+    print(f"Starting game with difficulty {settings['difficulty']}, human color: {settings['human_color']}")
+    
+    # Initialize game with selected settings
+    try:
+        game = create_game()
+        ai = create_ai(difficulty=settings['difficulty'])
+        
+        # Now run the main game
+        run_gui_game(game, ai, settings['human_color'], screen, clock)
+        
+    except Exception as e:
+        print(f"Error setting up game: {e}")
+        pygame.quit()
+
+
+def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     """Run the chess game with PyGame GUI."""
     from ..game.game_loop import make_move, get_current_player, get_game_status
     from ..ai.stockfish_ai import get_ai_move, cleanup_ai
     
-    gui = GameGUI()
+    # Use provided screen/clock or create new ones
+    if screen is None or clock is None:
+        gui = GameGUI()
+        screen = gui.screen
+        clock = gui.clock
+    else:
+        gui = GameGUI()
+        gui.screen = screen
+        gui.clock = clock
     
     try:
         while gui.is_running():
