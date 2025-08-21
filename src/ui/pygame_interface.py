@@ -110,8 +110,81 @@ class PieceAssets:
         self.load_pieces()
     
     def load_pieces(self):
-        """Load piece images from assets directory or create text-based pieces."""
-        # Try to load image files first, fall back to Unicode symbols
+        """Load piece images from assets directory or create text-based fallback."""
+        import os
+        
+        # Try to load PNG images first
+        if self._load_png_pieces():
+            print("Loaded PNG chess pieces successfully")
+            return
+        
+        # Fallback to Unicode symbols if image loading fails
+        print("PNG pieces not found, using Unicode fallback")
+        self._load_unicode_pieces()
+    
+    def _load_png_pieces(self) -> bool:
+        """Load chess pieces from PNG files. Returns True if successful."""
+        try:
+            import os
+            
+            # Get the path to assets directory
+            assets_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'pieces')
+            
+            # If running from different directory, try alternative paths
+            if not os.path.exists(assets_dir):
+                assets_dir = os.path.join('assets', 'pieces')
+            if not os.path.exists(assets_dir):
+                assets_dir = os.path.join('..', 'assets', 'pieces')
+            if not os.path.exists(assets_dir):
+                return False
+            
+            # Define piece mappings
+            piece_files = {
+                'white': {
+                    'king': 'white_king.png',
+                    'queen': 'white_queen.png', 
+                    'rook': 'white_rook.png',
+                    'bishop': 'white_bishop.png',
+                    'knight': 'white_knight.png',
+                    'pawn': 'white_pawn.png'
+                },
+                'black': {
+                    'king': 'black_king.png',
+                    'queen': 'black_queen.png',
+                    'rook': 'black_rook.png', 
+                    'bishop': 'black_bishop.png',
+                    'knight': 'black_knight.png',
+                    'pawn': 'black_pawn.png'
+                }
+            }
+            
+            # Load each piece
+            for color, pieces_dict in piece_files.items():
+                self.pieces[color] = {}
+                for piece_type, filename in pieces_dict.items():
+                    filepath = os.path.join(assets_dir, filename)
+                    
+                    if not os.path.exists(filepath):
+                        print(f"Missing piece file: {filepath}")
+                        return False
+                    
+                    # Load and scale the image
+                    piece_surface = pygame.image.load(filepath).convert_alpha()
+                    
+                    # Scale to fit square size (with some padding)
+                    target_size = int(SQUARE_SIZE * 0.8)  # 80% of square size
+                    piece_surface = pygame.transform.smoothscale(piece_surface, (target_size, target_size))
+                    
+                    self.pieces[color][piece_type] = piece_surface
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error loading PNG pieces: {e}")
+            return False
+    
+    def _load_unicode_pieces(self):
+        """Load chess pieces using Unicode symbols as fallback."""
         piece_symbols = {
             'white': {'king': '♔', 'queen': '♕', 'rook': '♖', 'bishop': '♗', 'knight': '♘', 'pawn': '♙'},
             'black': {'king': '♚', 'queen': '♛', 'rook': '♜', 'bishop': '♝', 'knight': '♞', 'pawn': '♟'}
@@ -140,9 +213,9 @@ class PieceAssets:
             chess_font = pygame.font.Font(None, 60)
         
         # Create piece surfaces
-        for color, pieces in piece_symbols.items():
+        for color, pieces_dict in piece_symbols.items():
             self.pieces[color] = {}
-            for piece_type, symbol in pieces.items():
+            for piece_type, symbol in pieces_dict.items():
                 # Create piece surface with shadow effect
                 piece_color = (255, 255, 255) if color == 'white' else (0, 0, 0)
                 shadow_color = (128, 128, 128)
