@@ -96,69 +96,6 @@ class EvaluationDisplay:
         surface.blit(text_surface, (x, y))
 
 
-class HelpDisplay:
-    """GUI component for showing help text."""
-    
-    def __init__(self):
-        """Initialize help display."""
-        self.show_help = False
-        self.font = None
-        self._init_font()
-    
-    def _init_font(self):
-        """Initialize font for help display."""
-        try:
-            self.font = pygame.font.Font(None, 18)
-        except:
-            # Fallback if font loading fails
-            self.font = None
-    
-    def toggle_help(self):
-        """Toggle help display on/off."""
-        self.show_help = not self.show_help
-    
-    def set_help_visible(self, visible: bool):
-        """Set help visibility."""
-        self.show_help = visible
-    
-    def render(self, surface, x: int, y: int) -> None:
-        """
-        Render the help display on the given surface.
-        
-        Args:
-            surface: Pygame surface to render on
-            x: X position
-            y: Y position
-        """
-        if not self.show_help or not self.font:
-            return
-        
-        help_lines = [
-            "Learning Commands:",
-            "  E - Position evaluation",
-            "  B - Best move suggestion",
-            "  S - Toggle solo mode", 
-            "  U - Undo last move",
-            "  R - Redo move",
-            "  H - Toggle this help",
-            "",
-            "Click pieces to move"
-        ]
-        
-        # Draw semi-transparent background
-        help_height = len(help_lines) * 20 + 10
-        help_width = 200
-        background = pygame.Surface((help_width, help_height), pygame.SRCALPHA)
-        background.fill((0, 0, 0, 180))  # Semi-transparent black
-        surface.blit(background, (x, y))
-        
-        # Render each line
-        for i, line in enumerate(help_lines):
-            color = (255, 255, 255) if line else (200, 200, 200)  # White or gray
-            text_surface = self.font.render(line, True, color)
-            surface.blit(text_surface, (x + 5, y + 5 + i * 20))
-
-
 class SoloModeIndicator:
     """GUI component for indicating solo mode status."""
     
@@ -266,6 +203,7 @@ class HelpDisplay:
             "  S - Toggle solo mode", 
             "  U - Undo last move",
             "  R - Redo move",
+            "  A - Auto-evaluation toggle",
             "  H - Toggle this help",
             "",
             "Click pieces to move"
@@ -273,7 +211,7 @@ class HelpDisplay:
         
         # Draw semi-transparent background
         help_height = len(help_lines) * 20 + 10
-        help_width = 200
+        help_width = 220
         background = pygame.Surface((help_width, help_height), pygame.SRCALPHA)
         background.fill((0, 0, 0, 180))  # Semi-transparent black
         surface.blit(background, (x, y))
@@ -283,3 +221,115 @@ class HelpDisplay:
             color = (255, 255, 255) if line else (200, 200, 200)  # White or gray
             text_surface = self.font.render(line, True, color)
             surface.blit(text_surface, (x + 5, y + 5 + i * 20))
+
+
+class LearningButtonPanel:
+    """GUI component for learning command buttons."""
+    
+    def __init__(self):
+        """Initialize button panel."""
+        self.font = None
+        self.button_font = None
+        self._init_fonts()
+        
+        # Button definitions: (text, command, color)
+        self.buttons = [
+            ("Eval", "eval", (70, 130, 180)),     # Steel blue
+            ("Best", "best", (60, 179, 113)),     # Medium sea green
+            ("Solo", "solo", (218, 165, 32)),     # Golden rod
+            ("Undo", "undo", (205, 92, 92)),      # Indian red
+            ("Redo", "redo", (138, 43, 226)),     # Blue violet
+            ("Auto", "auto_eval", (255, 140, 0)), # Dark orange
+        ]
+        
+        # Button dimensions
+        self.button_width = 60
+        self.button_height = 30
+        self.button_spacing = 5
+    
+    def _init_fonts(self):
+        """Initialize fonts for button panel."""
+        try:
+            self.font = pygame.font.Font(None, 18)
+            self.button_font = pygame.font.Font(None, 16)
+        except:
+            # Fallback if font loading fails
+            self.font = None
+            self.button_font = None
+    
+    def render(self, surface, x: int, y: int, auto_eval_enabled: bool = False, solo_enabled: bool = False) -> None:
+        """
+        Render the button panel on the given surface.
+        
+        Args:
+            surface: Pygame surface to render on
+            x: X position
+            y: Y position
+            auto_eval_enabled: Whether auto-evaluation is enabled
+            solo_enabled: Whether solo mode is enabled
+        """
+        if not self.font or not self.button_font:
+            return
+        
+        # Render buttons in 2 columns, 3 rows (no header)
+        for i, (text, command, base_color) in enumerate(self.buttons):
+            col = i % 2
+            row = i // 2
+            
+            button_x = x + col * (self.button_width + self.button_spacing)
+            button_y = y + row * (self.button_height + self.button_spacing)
+            
+            # Determine if button is active (toggle state)
+            is_active = False
+            if command == "auto_eval" and auto_eval_enabled:
+                is_active = True
+                color = (100, 255, 100)  # Bright green when active
+            elif command == "solo" and solo_enabled:
+                is_active = True
+                color = (255, 215, 0)  # Bright gold when active
+            else:
+                color = base_color
+            
+            # Draw button background
+            button_rect = pygame.Rect(button_x, button_y, self.button_width, self.button_height)
+            pygame.draw.rect(surface, color, button_rect)
+            
+            # Draw border - thicker/darker for active buttons
+            if is_active:
+                pygame.draw.rect(surface, (0, 0, 0), button_rect, 4)  # Dark thick border when active
+            else:
+                pygame.draw.rect(surface, (255, 255, 255), button_rect, 2)  # White border normally
+            
+            # Draw button text
+            text_surface = self.button_font.render(text, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=button_rect.center)
+            surface.blit(text_surface, text_rect)
+    
+    def handle_click(self, mouse_x: int, mouse_y: int, panel_x: int, panel_y: int) -> Optional[str]:
+        """
+        Handle mouse clicks on buttons.
+        
+        Args:
+            mouse_x: Mouse X coordinate
+            mouse_y: Mouse Y coordinate
+            panel_x: Panel X position
+            panel_y: Panel Y position
+            
+        Returns:
+            Command string if button clicked, None otherwise
+        """
+        # No title offset needed anymore
+        
+        for i, (text, command, color) in enumerate(self.buttons):
+            col = i % 2
+            row = i // 2
+            
+            button_x = panel_x + col * (self.button_width + self.button_spacing)
+            button_y = panel_y + row * (self.button_height + self.button_spacing)
+            
+            button_rect = pygame.Rect(button_x, button_y, self.button_width, self.button_height)
+            
+            if button_rect.collidepoint(mouse_x, mouse_y):
+                return command
+        
+        return None

@@ -7,7 +7,7 @@ from typing import Optional, Tuple, List
 from ..game.game_loop import get_current_player, get_game_status, get_legal_moves
 from ..game.board_state import get_board_fen
 from .sound_manager import get_sound_manager
-from .learning_gui import EvaluationDisplay, SoloModeIndicator, HelpDisplay
+from .learning_gui import EvaluationDisplay, SoloModeIndicator, HelpDisplay, LearningButtonPanel
 
 
 # Constants
@@ -503,6 +503,9 @@ class GameGUI:
         self.evaluation_display = EvaluationDisplay()
         self.solo_mode_indicator = SoloModeIndicator()
         self.help_display = HelpDisplay()
+        self.button_panel = LearningButtonPanel()
+        self.auto_evaluation = False  # Toggle for automatic evaluation display
+        self._solo_enabled = False  # Track solo mode state for GUI
         
         # Game state
         self.running = True
@@ -720,8 +723,25 @@ class GameGUI:
         solo_y = 10
         self.solo_mode_indicator.render(self.screen, solo_x, solo_y)
         
+        # Keyboard shortcuts info in bottom left (always visible)
+        auto_status = " [ON]" if self.auto_evaluation else ""
+        shortcuts_text = ["Keyboard shortcuts:", "E-eval B-best S-solo", f"U-undo R-redo A-auto{auto_status}", "H-help (toggle overlay)"]
+        shortcuts_font = pygame.font.Font(None, 16)
+        for i, text in enumerate(shortcuts_text):
+            color = (180, 180, 180) if i == 0 else (160, 160, 160)
+            if "A-auto" in text and self.auto_evaluation:
+                color = (100, 255, 100)  # Green when auto-eval is on
+            text_surface = shortcuts_font.render(text, True, color)
+            self.screen.blit(text_surface, (10, WINDOW_SIZE - 80 + i * 16))
+        
+        # Learning button panel below chessboard
+        button_x = BOARD_OFFSET_X + (BOARD_SIZE - 130) // 2  # Center below board
+        button_y = BOARD_OFFSET_Y + BOARD_SIZE + 10  # Below the board
+        solo_enabled = hasattr(self, '_solo_enabled') and self._solo_enabled
+        self.button_panel.render(self.screen, button_x, button_y, self.auto_evaluation, solo_enabled)
+        
         # Help display in bottom right
-        help_x = WINDOW_SIZE - 210
+        help_x = WINDOW_SIZE - 220
         help_y = WINDOW_SIZE - 200
         self.help_display.render(self.screen, help_x, help_y)
     
@@ -737,6 +757,15 @@ class GameGUI:
         """Toggle help display."""
         self.help_display.toggle_help()
     
+    def toggle_auto_evaluation(self):
+        """Toggle automatic evaluation display."""
+        self.auto_evaluation = not self.auto_evaluation
+        return self.auto_evaluation
+    
+    def is_auto_evaluation_enabled(self):
+        """Check if auto-evaluation is enabled."""
+        return self.auto_evaluation
+    
     def handle_events(self, game) -> Optional[str]:
         """Handle pygame events and return move if one was made."""
         for event in pygame.event.get():
@@ -745,6 +774,16 @@ class GameGUI:
                 return "quit"
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
+                    # Check button panel clicks first
+                    button_x = BOARD_OFFSET_X + (BOARD_SIZE - 130) // 2
+                    button_y = BOARD_OFFSET_Y + BOARD_SIZE + 10
+                    button_command = self.button_panel.handle_click(
+                        event.pos[0], event.pos[1], button_x, button_y
+                    )
+                    if button_command:
+                        return button_command
+                    
+                    # Handle chess board clicks
                     return self.handle_click(event.pos, game)
             elif event.type == pygame.KEYDOWN:
                 # Handle keyboard shortcuts for learning features
@@ -760,6 +799,8 @@ class GameGUI:
                     return "redo"
                 elif event.key == pygame.K_h:  # 'h' for help
                     return "help"
+                elif event.key == pygame.K_a:  # 'a' for auto-evaluation toggle
+                    return "auto_eval"
         
         return None
     
@@ -864,6 +905,7 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
             toggle_solo_mode(solo_state)
             status = get_solo_mode_status(solo_state)
             gui.set_solo_mode(solo_state.is_solo_enabled())
+            gui._solo_enabled = solo_state.is_solo_enabled()  # Track for button display
             print(status)
             return current_game
         elif command == 'undo':
@@ -885,6 +927,15 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
         elif command == 'help':
             gui.toggle_help()
             print("Toggled help display")
+            return current_game
+        elif command == 'auto_eval':
+            enabled = gui.toggle_auto_evaluation()
+            status = "enabled" if enabled else "disabled"
+            print(f"Auto-evaluation {status}")
+            if enabled:
+                # Show evaluation immediately when enabling
+                evaluation = get_position_evaluation(current_game, ai)
+                gui.set_evaluation(evaluation)
             return current_game
         return current_game
     
@@ -957,6 +1008,11 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                             # Add new position to history
                             game_history.add_position(game)
                             
+                            # Auto-evaluate if enabled
+                            if gui.is_auto_evaluation_enabled():
+                                evaluation = get_position_evaluation(game, ai)
+                                gui.set_evaluation(evaluation)
+                            
                             # Play appropriate sound effect for AI move
                             analysis = move_result.get('move_analysis', {})
                             sound_manager.play_move_sound(
@@ -988,7 +1044,7 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                 
                 if move_input == "quit":
                     break
-                elif move_input in ['eval', 'best', 'solo', 'undo', 'redo', 'help']:
+                elif move_input in ['eval', 'best', 'solo', 'undo', 'redo', 'help', 'auto_eval']:
                     # Handle learning commands
                     game = handle_learning_command(move_input, game)
                     # Continue to re-render the position
@@ -1003,6 +1059,11 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                         
                         # Add new position to history
                         game_history.add_position(game)
+                        
+                        # Auto-evaluate if enabled
+                        if gui.is_auto_evaluation_enabled():
+                            evaluation = get_position_evaluation(game, ai)
+                            gui.set_evaluation(evaluation)
                         
                         # Play appropriate sound effect
                         analysis = move_result.get('move_analysis', {})

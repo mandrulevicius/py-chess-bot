@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from src.ui.learning_gui import EvaluationDisplay, SoloModeIndicator, HelpDisplay
+from src.ui.learning_gui import EvaluationDisplay, SoloModeIndicator, HelpDisplay, LearningButtonPanel
 
 
 class TestEvaluationDisplay:
@@ -153,3 +153,41 @@ class TestHelpDisplay:
         
         self.help_display.set_help_visible(False)
         assert self.help_display.show_help == False
+
+
+class TestLearningButtonPanel:
+    """Test GUI learning button panel functionality."""
+    
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.button_panel = LearningButtonPanel()
+    
+    def test_create_button_panel(self):
+        """Test creating button panel."""
+        assert self.button_panel is not None
+        assert hasattr(self.button_panel, 'buttons')
+        assert hasattr(self.button_panel, 'handle_click')
+        assert len(self.button_panel.buttons) == 6  # Eval, Best, Solo, Undo, Redo, Auto
+    
+    def test_button_definitions(self):
+        """Test button definitions are correct."""
+        button_commands = [btn[1] for btn in self.button_panel.buttons]
+        expected_commands = ['eval', 'best', 'solo', 'undo', 'redo', 'auto_eval']
+        
+        assert button_commands == expected_commands
+    
+    def test_handle_click_no_button(self):
+        """Test click outside button area."""
+        result = self.button_panel.handle_click(0, 0, 100, 100)
+        assert result is None
+    
+    def test_handle_click_on_button(self):
+        """Test click on button area."""
+        # Test click on first button (eval) - approximate position (no header offset now)
+        panel_x, panel_y = 100, 100
+        # First button should be at (panel_x, panel_y) with size (60, 30)
+        button_x = panel_x + 30  # Center of button
+        button_y = panel_y + 15  # Center of button
+        
+        result = self.button_panel.handle_click(button_x, button_y, panel_x, panel_y)
+        assert result == 'eval'
