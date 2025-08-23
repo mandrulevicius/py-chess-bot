@@ -1,29 +1,24 @@
 # PyChessBot - Current State
 
 ## Currently Working On
-- Nothing active - project in maintenance mode
-- All core features and learning system implemented
+- Nothing active - all auto-evaluation improvements completed
+- Project ready for continued use or new features
 
 ## Known Issues
-
-### 1. Auto-Evaluation Update Issue (High Priority)
-- **Problem**: Auto-evaluation only updates when manually requested, not after each move
-- **Expected**: When auto-eval toggle is enabled, evaluation should update automatically after every move
-- **Location**: `src/ui/learning_gui.py` and `src/ui/pygame_interface.py`
-- **Impact**: Core learning feature not working as designed
+- None currently identified
+- All learning features working as intended
 
 ## Recent Session Accomplishments
-- Advanced learning platform fully implemented
-- 142+ tests passing with comprehensive coverage
-- Professional GUI with learning features
-- Real-time Stockfish integration for position analysis
-- Complete undo/redo system with move history
-- Solo mode for chess study
+- ✅ **Fixed auto-evaluation for undo/redo**: Added missing auto-evaluation calls to undo/redo operations
+- ✅ **Updated CLAUDE.md**: Added documentation maintenance requirements for project_status and current_state files
+- ✅ **Added console output to auto-evaluation**: Auto-eval now prints to console as well as GUI display
+- ✅ **Simplified UI**: Replaced separate Eval/Auto buttons with single toggled Eval button
+- ✅ **Updated help and keyboard shortcuts**: Reflects new E/A key behavior for toggling auto-evaluation
+- ✅ **All tests passing**: 142 tests including updated learning GUI tests
 
 ## Immediate Next Steps
-1. Fix auto-evaluation to trigger after each move when enabled
-2. Verify all learning features work together seamlessly
-3. Performance testing for evaluation updates
+- All planned improvements completed
+- Ready for new features or user feedback
 
 ## Test Status
 - ✅ All 142 tests passing

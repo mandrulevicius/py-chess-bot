@@ -198,12 +198,11 @@ class HelpDisplay:
         
         help_lines = [
             "Learning Commands:",
-            "  E - Position evaluation",
+            "  E/A - Toggle auto-evaluation",
             "  B - Best move suggestion",
             "  S - Toggle solo mode", 
             "  U - Undo last move",
             "  R - Redo move",
-            "  A - Auto-evaluation toggle",
             "  H - Toggle this help",
             "",
             "Click pieces to move"
@@ -234,12 +233,11 @@ class LearningButtonPanel:
         
         # Button definitions: (text, command, color)
         self.buttons = [
-            ("Eval", "eval", (70, 130, 180)),     # Steel blue
+            ("Eval", "eval", (70, 130, 180)),     # Steel blue - now toggles auto-eval
             ("Best", "best", (60, 179, 113)),     # Medium sea green
             ("Solo", "solo", (218, 165, 32)),     # Golden rod
             ("Undo", "undo", (205, 92, 92)),      # Indian red
             ("Redo", "redo", (138, 43, 226)),     # Blue violet
-            ("Auto", "auto_eval", (255, 140, 0)), # Dark orange
         ]
         
         # Button dimensions
@@ -271,19 +269,24 @@ class LearningButtonPanel:
         if not self.font or not self.button_font:
             return
         
-        # Render buttons in 2 columns, 3 rows (no header)
+        # Render buttons in 2 columns (Eval/Best, Solo/Undo, Redo centered)
         for i, (text, command, base_color) in enumerate(self.buttons):
-            col = i % 2
-            row = i // 2
+            if i < 4:
+                col = i % 2
+                row = i // 2
+            else:
+                # Center the 5th button (Redo)
+                col = 0.5  # Between columns
+                row = 2
             
             button_x = x + col * (self.button_width + self.button_spacing)
             button_y = y + row * (self.button_height + self.button_spacing)
             
             # Determine if button is active (toggle state)
             is_active = False
-            if command == "auto_eval" and auto_eval_enabled:
+            if command == "eval" and auto_eval_enabled:
                 is_active = True
-                color = (100, 255, 100)  # Bright green when active
+                color = (100, 255, 100)  # Bright green when auto-eval is on
             elif command == "solo" and solo_enabled:
                 is_active = True
                 color = (255, 215, 0)  # Bright gold when active

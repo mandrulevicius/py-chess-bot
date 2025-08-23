@@ -725,11 +725,11 @@ class GameGUI:
         
         # Keyboard shortcuts info in bottom left (always visible)
         auto_status = " [ON]" if self.auto_evaluation else ""
-        shortcuts_text = ["Keyboard shortcuts:", "E-eval B-best S-solo", f"U-undo R-redo A-auto{auto_status}", "H-help (toggle overlay)"]
+        shortcuts_text = ["Keyboard shortcuts:", "E/A-eval B-best S-solo", f"U-undo R-redo{auto_status}", "H-help (toggle overlay)"]
         shortcuts_font = pygame.font.Font(None, 16)
         for i, text in enumerate(shortcuts_text):
             color = (180, 180, 180) if i == 0 else (160, 160, 160)
-            if "A-auto" in text and self.auto_evaluation:
+            if auto_status and "redo" in text and self.auto_evaluation:
                 color = (100, 255, 100)  # Green when auto-eval is on
             text_surface = shortcuts_font.render(text, True, color)
             self.screen.blit(text_surface, (10, WINDOW_SIZE - 80 + i * 16))
@@ -800,7 +800,7 @@ class GameGUI:
                 elif event.key == pygame.K_h:  # 'h' for help
                     return "help"
                 elif event.key == pygame.K_a:  # 'a' for auto-evaluation toggle
-                    return "auto_eval"
+                    return "eval"
         
         return None
     
@@ -892,9 +892,15 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     def handle_learning_command(command, current_game):
         """Handle learning commands in GUI mode."""
         if command == 'eval':
-            evaluation = get_position_evaluation(current_game, ai)
-            gui.set_evaluation(evaluation)
-            print(f"Position evaluation: {evaluation.get('score', 0)} centipawns")
+            # Toggle auto-evaluation mode
+            enabled = gui.toggle_auto_evaluation()
+            status = "enabled" if enabled else "disabled"
+            print(f"Auto-evaluation {status}")
+            if enabled:
+                # Show evaluation immediately when enabling
+                evaluation = get_position_evaluation(current_game, ai)
+                gui.set_evaluation(evaluation)
+                print(f"Auto-evaluation: {evaluation.get('score', 0)} centipawns")
             return current_game
         elif command == 'best':
             best_move = get_best_move_suggestion(current_game, ai)
@@ -913,6 +919,11 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                 if undo_move(game_history):
                     updated_game = get_current_position(game_history)
                     print("Move undone")
+                    # Auto-evaluate if enabled
+                    if gui.is_auto_evaluation_enabled():
+                        evaluation = get_position_evaluation(updated_game, ai)
+                        gui.set_evaluation(evaluation)
+                        print(f"Auto-evaluation: {evaluation.get('score', 0)} centipawns")
                     return updated_game
             print("Cannot undo - no previous moves")
             return current_game
@@ -921,21 +932,17 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                 if redo_move(game_history):
                     updated_game = get_current_position(game_history)
                     print("Move redone") 
+                    # Auto-evaluate if enabled
+                    if gui.is_auto_evaluation_enabled():
+                        evaluation = get_position_evaluation(updated_game, ai)
+                        gui.set_evaluation(evaluation)
+                        print(f"Auto-evaluation: {evaluation.get('score', 0)} centipawns")
                     return updated_game
             print("Cannot redo - no moves to redo")
             return current_game
         elif command == 'help':
             gui.toggle_help()
             print("Toggled help display")
-            return current_game
-        elif command == 'auto_eval':
-            enabled = gui.toggle_auto_evaluation()
-            status = "enabled" if enabled else "disabled"
-            print(f"Auto-evaluation {status}")
-            if enabled:
-                # Show evaluation immediately when enabling
-                evaluation = get_position_evaluation(current_game, ai)
-                gui.set_evaluation(evaluation)
             return current_game
         return current_game
     
@@ -1012,6 +1019,7 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                             if gui.is_auto_evaluation_enabled():
                                 evaluation = get_position_evaluation(game, ai)
                                 gui.set_evaluation(evaluation)
+                                print(f"Auto-evaluation: {evaluation.get('score', 0)} centipawns")
                             
                             # Play appropriate sound effect for AI move
                             analysis = move_result.get('move_analysis', {})
@@ -1044,7 +1052,7 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                 
                 if move_input == "quit":
                     break
-                elif move_input in ['eval', 'best', 'solo', 'undo', 'redo', 'help', 'auto_eval']:
+                elif move_input in ['eval', 'best', 'solo', 'undo', 'redo', 'help']:
                     # Handle learning commands
                     game = handle_learning_command(move_input, game)
                     # Continue to re-render the position
@@ -1064,6 +1072,7 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                         if gui.is_auto_evaluation_enabled():
                             evaluation = get_position_evaluation(game, ai)
                             gui.set_evaluation(evaluation)
+                            print(f"Auto-evaluation: {evaluation.get('score', 0)} centipawns")
                         
                         # Play appropriate sound effect
                         analysis = move_result.get('move_analysis', {})

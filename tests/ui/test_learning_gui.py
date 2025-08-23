@@ -167,12 +167,12 @@ class TestLearningButtonPanel:
         assert self.button_panel is not None
         assert hasattr(self.button_panel, 'buttons')
         assert hasattr(self.button_panel, 'handle_click')
-        assert len(self.button_panel.buttons) == 6  # Eval, Best, Solo, Undo, Redo, Auto
+        assert len(self.button_panel.buttons) == 5  # Eval, Best, Solo, Undo, Redo
     
     def test_button_definitions(self):
         """Test button definitions are correct."""
         button_commands = [btn[1] for btn in self.button_panel.buttons]
-        expected_commands = ['eval', 'best', 'solo', 'undo', 'redo', 'auto_eval']
+        expected_commands = ['eval', 'best', 'solo', 'undo', 'redo']
         
         assert button_commands == expected_commands
     
