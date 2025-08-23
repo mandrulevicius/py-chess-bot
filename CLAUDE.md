@@ -37,6 +37,26 @@ This project follows **Test Driven Development (TDD)** with red-green-refactor c
 - **Prefer procedural over class-based approach** when it makes sense
 - **Red-Green-Refactor**: Make it work, make it right, make it fast
 
+## Documentation Maintenance
+
+### Project Status Tracking
+**IMPORTANT**: Before each commit (after each feature completion):
+1. Update `docs/project_status.md` to reflect:
+   - Completed features and their implementation status
+   - Test coverage updates
+   - New capabilities added
+   - Current project phase and completion level
+
+### Development State Tracking  
+**IMPORTANT**: After each development step:
+1. Update `docs/current_state.md` to reflect:
+   - What you're currently working on
+   - Known issues discovered
+   - Recent accomplishments in this session
+   - Next immediate steps
+
+**Note**: `current_state.md` should NOT contain extensive documentation - just current work focus and known issues.
+
 ## Development Commands
 
 ```bash
