@@ -7,6 +7,7 @@ from typing import Optional, Tuple, List
 from ..game.game_loop import get_current_player, get_game_status, get_legal_moves
 from ..game.board_state import get_board_fen
 from .sound_manager import get_sound_manager
+from .learning_gui import EvaluationDisplay, SoloModeIndicator, HelpDisplay
 
 
 # Constants
@@ -498,6 +499,11 @@ class GameGUI:
         self.pieces = PieceAssets()
         self.font = pygame.font.Font(None, 36)
         
+        # Learning components
+        self.evaluation_display = EvaluationDisplay()
+        self.solo_mode_indicator = SoloModeIndicator()
+        self.help_display = HelpDisplay()
+        
         # Game state
         self.running = True
         self.selected_square = None
@@ -696,8 +702,40 @@ class GameGUI:
         self.renderer.draw_selection_highlight()
         self.renderer.draw_legal_move_highlights()
         
+        # Draw learning components
+        self.draw_learning_indicators()
+        
         # Update display
         pygame.display.flip()
+    
+    def draw_learning_indicators(self):
+        """Draw learning feature indicators (evaluation and solo mode)."""
+        # Position evaluation in top right
+        eval_x = WINDOW_SIZE - 120
+        eval_y = 10
+        self.evaluation_display.render(self.screen, eval_x, eval_y)
+        
+        # Solo mode indicator in top left
+        solo_x = 10
+        solo_y = 10
+        self.solo_mode_indicator.render(self.screen, solo_x, solo_y)
+        
+        # Help display in bottom right
+        help_x = WINDOW_SIZE - 210
+        help_y = WINDOW_SIZE - 200
+        self.help_display.render(self.screen, help_x, help_y)
+    
+    def set_evaluation(self, evaluation):
+        """Set the position evaluation to display."""
+        self.evaluation_display.set_evaluation(evaluation)
+    
+    def set_solo_mode(self, enabled):
+        """Set the solo mode status."""
+        self.solo_mode_indicator.set_solo_mode(enabled)
+    
+    def toggle_help(self):
+        """Toggle help display."""
+        self.help_display.toggle_help()
     
     def handle_events(self, game) -> Optional[str]:
         """Handle pygame events and return move if one was made."""
@@ -708,6 +746,20 @@ class GameGUI:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
                     return self.handle_click(event.pos, game)
+            elif event.type == pygame.KEYDOWN:
+                # Handle keyboard shortcuts for learning features
+                if event.key == pygame.K_e:  # 'e' for evaluation
+                    return "eval"
+                elif event.key == pygame.K_b:  # 'b' for best move
+                    return "best"
+                elif event.key == pygame.K_s:  # 's' for solo mode
+                    return "solo"
+                elif event.key == pygame.K_u:  # 'u' for undo
+                    return "undo"
+                elif event.key == pygame.K_r:  # 'r' for redo
+                    return "redo"
+                elif event.key == pygame.K_h:  # 'h' for help
+                    return "help"
         
         return None
     
@@ -770,10 +822,18 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     """Run the chess game with PyGame GUI."""
     from ..game.game_loop import make_move, get_current_player, get_game_status
     from ..ai.stockfish_ai import get_ai_move, cleanup_ai
+    from ..analysis.position_evaluator import get_position_evaluation, get_best_move_suggestion
+    from ..analysis.move_history import GameHistory, can_undo, can_redo, undo_move, redo_move, get_current_position
+    from ..analysis.solo_mode import SoloModeState, toggle_solo_mode, should_use_ai, get_solo_mode_status
     
     # Get sound manager (already initialized in main)
     sound_manager = get_sound_manager()
     sound_manager.play_game_start_sound()
+    
+    # Initialize learning features
+    game_history = GameHistory()
+    game_history.add_position(game)  # Add starting position
+    solo_state = SoloModeState()
     
     # Use provided screen/clock or create new ones
     if screen is None or clock is None:
@@ -787,6 +847,46 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
     
     # Set board orientation based on player color
     gui.renderer.set_flipped(human_color == 'black')
+    
+    def handle_learning_command(command, current_game):
+        """Handle learning commands in GUI mode."""
+        if command == 'eval':
+            evaluation = get_position_evaluation(current_game, ai)
+            gui.set_evaluation(evaluation)
+            print(f"Position evaluation: {evaluation.get('score', 0)} centipawns")
+            return current_game
+        elif command == 'best':
+            best_move = get_best_move_suggestion(current_game, ai)
+            if best_move:
+                print(f"Best move: {best_move}")
+            return current_game
+        elif command == 'solo':
+            toggle_solo_mode(solo_state)
+            status = get_solo_mode_status(solo_state)
+            gui.set_solo_mode(solo_state.is_solo_enabled())
+            print(status)
+            return current_game
+        elif command == 'undo':
+            if can_undo(game_history):
+                if undo_move(game_history):
+                    updated_game = get_current_position(game_history)
+                    print("Move undone")
+                    return updated_game
+            print("Cannot undo - no previous moves")
+            return current_game
+        elif command == 'redo':
+            if can_redo(game_history):
+                if redo_move(game_history):
+                    updated_game = get_current_position(game_history)
+                    print("Move redone") 
+                    return updated_game
+            print("Cannot redo - no moves to redo")
+            return current_game
+        elif command == 'help':
+            gui.toggle_help()
+            print("Toggled help display")
+            return current_game
+        return current_game
     
     try:
         # Always render the initial position first
@@ -817,35 +917,10 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
             # Determine whose turn it is
             current_player = get_current_player(game)
             
-            if current_player == human_color:
-                # Human turn - handle GUI events
-                move_input = gui.handle_events(game)
-                
-                if move_input == "quit":
-                    break
-                elif move_input is not None:
-                    # Process human move
-                    print(f"Human move: {move_input}")
-                    move_result = make_move(game, move_input)
-                    
-                    if move_result['success']:
-                        game = move_result['new_game']
-                        print(f"Move successful: {move_input}")
-                        
-                        # Play appropriate sound effect
-                        analysis = move_result.get('move_analysis', {})
-                        sound_manager.play_move_sound(
-                            is_capture=analysis.get('is_capture', False),
-                            is_check=analysis.get('is_check', False),
-                            is_checkmate=analysis.get('is_checkmate', False),
-                            is_castle=analysis.get('is_castle', False),
-                            is_promotion=analysis.get('is_promotion', False)
-                        )
-                    else:
-                        print(f"Invalid move: {move_result['error']}")
-                        sound_manager.play_error_sound()
-            else:
-                # AI turn - first render current position, then let AI think
+            # Check if in solo mode or if it's human's turn
+            if should_use_ai(solo_state) and current_player != human_color:
+                # AI turn (only if not in solo mode)
+                # First render current position, then let AI think
                 gui.render(game)
                 pygame.display.flip()
                 
@@ -879,6 +954,9 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                             game = move_result['new_game']
                             ai_move_successful = True
                             
+                            # Add new position to history
+                            game_history.add_position(game)
+                            
                             # Play appropriate sound effect for AI move
                             analysis = move_result.get('move_analysis', {})
                             sound_manager.play_move_sound(
@@ -904,6 +982,40 @@ def run_gui_game(game, ai, human_color='white', screen=None, clock=None):
                 if not ai_move_successful:
                     print("AI unable to make valid move. Game ending.")
                     break
+            else:
+                # Human turn OR solo mode (human controls both sides)
+                move_input = gui.handle_events(game)
+                
+                if move_input == "quit":
+                    break
+                elif move_input in ['eval', 'best', 'solo', 'undo', 'redo', 'help']:
+                    # Handle learning commands
+                    game = handle_learning_command(move_input, game)
+                    # Continue to re-render the position
+                elif move_input is not None:
+                    # Process human move
+                    print(f"Human move: {move_input}")
+                    move_result = make_move(game, move_input)
+                    
+                    if move_result['success']:
+                        game = move_result['new_game']
+                        print(f"Move successful: {move_input}")
+                        
+                        # Add new position to history
+                        game_history.add_position(game)
+                        
+                        # Play appropriate sound effect
+                        analysis = move_result.get('move_analysis', {})
+                        sound_manager.play_move_sound(
+                            is_capture=analysis.get('is_capture', False),
+                            is_check=analysis.get('is_check', False),
+                            is_checkmate=analysis.get('is_checkmate', False),
+                            is_castle=analysis.get('is_castle', False),
+                            is_promotion=analysis.get('is_promotion', False)
+                        )
+                    else:
+                        print(f"Invalid move: {move_result['error']}")
+                        sound_manager.play_error_sound()
             
             # Render current state
             gui.render(game)

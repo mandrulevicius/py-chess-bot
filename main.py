@@ -146,13 +146,15 @@ def handle_user_command(user_input, game, ai, game_history=None, solo_state=None
     return False, game  # Not a command
 
 
-def human_turn(game, ai):
+def human_turn(game, ai, game_history=None, solo_state=None):
     """
     Execute human player's turn.
     
     Args:
         game (dict): Current game state
         ai (dict): AI instance for learning commands
+        game_history (GameHistory): Game history for undo/redo
+        solo_state (SoloModeState): Solo mode state
     
     Returns:
         dict: Move result with success/error information
@@ -162,7 +164,7 @@ def human_turn(game, ai):
             user_input = get_user_move()
             
             # Check for special commands  
-            command_handled, updated_game = handle_user_command(user_input, game, ai)
+            command_handled, updated_game = handle_user_command(user_input, game, ai, game_history, solo_state)
             if command_handled is None:  # Quit command
                 return None  # Return None to signal quit
             elif command_handled is True:  # Command handled
@@ -339,7 +341,13 @@ def main():
         
         show_message(f"Setting up game with AI difficulty {args.difficulty}...")
         show_message(f"You are playing as {args.human_color}.")
-        show_message("Game started! Type 'help' for commands.\n")
+        show_message("Game started! Type 'help' for commands.")
+        show_message("Learning commands: 'eval', 'best', 'solo', 'undo', 'redo'\n")
+        
+        # Initialize learning features
+        game_history = GameHistory()
+        game_history.add_position(game)  # Add starting position
+        solo_state = SoloModeState()
         
         # Console game loop
         try:
@@ -356,18 +364,23 @@ def main():
                 # Determine whose turn it is
                 current_player = get_current_player(game)
                 
-                if current_player == args.human_color:
-                    # Human turn
-                    move_result = human_turn(game, ai)
+                # Check if solo mode is enabled - if so, human controls both sides
+                if should_use_ai(solo_state) and current_player != args.human_color:
+                    # AI turn (only if not in solo mode)
+                    move_result = ai_turn(game, ai)
+                    game = move_result['new_game']
+                    # Add new position to history
+                    game_history.add_position(game)
+                else:
+                    # Human turn (either human's color or solo mode)
+                    move_result = human_turn(game, ai, game_history, solo_state)
                     if move_result is None:  # User quit
                         cleanup_ai(ai)
                         show_message("Thanks for playing PyChessBot!")
                         break
                     game = move_result['new_game']
-                else:
-                    # AI turn
-                    move_result = ai_turn(game, ai)
-                    game = move_result['new_game']
+                    # Add new position to history
+                    game_history.add_position(game)
         
         except KeyboardInterrupt:
             cleanup_ai(ai)
