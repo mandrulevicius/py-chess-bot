@@ -6,16 +6,17 @@ A Python-based chess game featuring human vs AI gameplay, built for educational 
 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI
 - **Triple Interface Support** - GUI, Console, and innovative Dual Mode (console + GUI)
-- **Interactive GUI** - Professional 800x800 chess board with PNG piece graphics
-- **Game Setup Screen** - Interactive difficulty slider and color selection
-- **Smart Move Highlighting** - Legal moves shown with visual overlays
-- **Adaptive Board Orientation** - Automatically flips when playing as black  
+- **Advanced Learning Features** - Real-time position evaluation, move analysis, and study tools
+- **Real-time Position Evaluation** - Stockfish analysis with centipawn scores and best move suggestions
+- **Interactive Study Mode** - Solo mode, undo/redo, move history with full game replay
+- **Auto-evaluation Toggle** - Automatic position scoring after each move
 - **Dual Mode** - Type moves in console, see them instantly in GUI window
-- **Sound Effects** - Audio feedback for moves, captures, check, and checkmate
+- **Smart Move Highlighting** - Legal moves shown with visual overlays
+- **Professional Sound System** - 9 chess-specific audio effects with intelligent priority
 - **Standard Chess Notation** - Full SAN (Standard Algebraic Notation) support  
 - **Comprehensive Rule Engine** - All chess rules including castling, en passant, promotion
 - **Configurable AI Difficulty** - 21 levels from beginner to grandmaster strength
-- **Test Coverage** - 100+ passing tests ensuring reliability
+- **Comprehensive Test Coverage** - 142+ passing tests ensuring reliability and stability
 
 ## 🚀 Quick Start
 
