@@ -269,15 +269,10 @@ class LearningButtonPanel:
         if not self.font or not self.button_font:
             return
         
-        # Render buttons in 2 columns (Eval/Best, Solo/Undo, Redo centered)
+        # Render buttons in single row
         for i, (text, command, base_color) in enumerate(self.buttons):
-            if i < 4:
-                col = i % 2
-                row = i // 2
-            else:
-                # Center the 5th button (Redo)
-                col = 0.5  # Between columns
-                row = 2
+            col = i  # All buttons in one row
+            row = 0
             
             button_x = x + col * (self.button_width + self.button_spacing)
             button_y = y + row * (self.button_height + self.button_spacing)
@@ -324,8 +319,8 @@ class LearningButtonPanel:
         # No title offset needed anymore
         
         for i, (text, command, color) in enumerate(self.buttons):
-            col = i % 2
-            row = i // 2
+            col = i  # All buttons in one row
+            row = 0
             
             button_x = panel_x + col * (self.button_width + self.button_spacing)
             button_y = panel_y + row * (self.button_height + self.button_spacing)

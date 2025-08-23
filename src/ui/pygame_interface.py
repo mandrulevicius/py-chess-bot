@@ -735,8 +735,8 @@ class GameGUI:
             self.screen.blit(text_surface, (10, WINDOW_SIZE - 80 + i * 16))
         
         # Learning button panel below chessboard
-        button_x = BOARD_OFFSET_X + (BOARD_SIZE - 130) // 2  # Center below board
-        button_y = BOARD_OFFSET_Y + BOARD_SIZE + 10  # Below the board
+        button_x = BOARD_OFFSET_X + (BOARD_SIZE - 330) // 2  # Center below board (wider for single row)
+        button_y = BOARD_OFFSET_Y + BOARD_SIZE + 40  # Further below the board
         solo_enabled = hasattr(self, '_solo_enabled') and self._solo_enabled
         self.button_panel.render(self.screen, button_x, button_y, self.auto_evaluation, solo_enabled)
         
@@ -775,8 +775,8 @@ class GameGUI:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
                     # Check button panel clicks first
-                    button_x = BOARD_OFFSET_X + (BOARD_SIZE - 130) // 2
-                    button_y = BOARD_OFFSET_Y + BOARD_SIZE + 10
+                    button_x = BOARD_OFFSET_X + (BOARD_SIZE - 330) // 2
+                    button_y = BOARD_OFFSET_Y + BOARD_SIZE + 40
                     button_command = self.button_panel.handle_click(
                         event.pos[0], event.pos[1], button_x, button_y
                     )
