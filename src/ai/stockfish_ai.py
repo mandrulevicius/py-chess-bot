@@ -1,53 +1,118 @@
 """Stockfish AI integration for chess engine."""
 
 import atexit
-from stockfish import Stockfish
-from ..game.board_state import get_board_fen
+from ..utils.logger import get_ai_logger
+
+# Handle missing dependencies gracefully
+try:
+    from stockfish import Stockfish
+    STOCKFISH_AVAILABLE = True
+    
+    # Apply monkey-patch to fix Stockfish destructor bug
+    # This is necessary because even when binary fails, Stockfish objects get created
+    _original_del = Stockfish.__del__
+    
+    def _safe_del(self):
+        """Safe destructor that handles missing _stockfish attribute."""
+        try:
+            _original_del(self)
+        except AttributeError:
+            # Ignore the AttributeError from missing _stockfish attribute
+            pass
+        except Exception:
+            # Ignore any other destructor errors
+            pass
+    
+    Stockfish.__del__ = _safe_del
+    
+except ImportError:
+    STOCKFISH_AVAILABLE = False
+    Stockfish = None
+
+try:
+    from ..game.board_state import get_board_fen
+    BOARD_STATE_AVAILABLE = True
+except ImportError:
+    BOARD_STATE_AVAILABLE = False
+    get_board_fen = None
 
 
-# Patch the Stockfish destructor to handle the AttributeError gracefully
-_original_del = Stockfish.__del__
-
-def _safe_del(self):
-    """Safe destructor that handles missing _stockfish attribute."""
-    try:
-        _original_del(self)
-    except AttributeError:
-        # Ignore the AttributeError from missing _stockfish
-        pass
-
-Stockfish.__del__ = _safe_del
+# SafeStockfish wrapper provides additional cleanup beyond the monkey-patch
 
 
 class SafeStockfish:
-    """Wrapper around Stockfish that handles cleanup properly."""
+    """
+    Wrapper around Stockfish that handles cleanup properly.
+    
+    This class eliminates the need for monkey-patching the Stockfish library
+    by providing a clean wrapper with proper resource management.
+    """
     
     def __init__(self, path):
         self._engine = None
         self._path = path
+        self._logger = get_ai_logger()
+        self._cleaned_up = False
+        
         try:
+            self._logger.debug(f"Initializing Stockfish engine at path: {path}")
             self._engine = Stockfish(path=path)
+            
+            # Test if the engine is actually functional
+            # Try to get the engine info - this will fail if binary is missing
+            try:
+                # This should work if Stockfish is properly initialized
+                test_result = self._engine.get_stockfish_major_version()
+                if test_result is None:
+                    raise RuntimeError("Stockfish engine is not responding")
+                self._logger.debug(f"Stockfish version: {test_result}")
+            except Exception as test_error:
+                self._logger.error(f"Stockfish engine test failed: {test_error}")
+                self._engine = None
+                raise RuntimeError(f"Stockfish engine not functional: {test_error}")
+            
             # Register cleanup on exit
             atexit.register(self._cleanup)
-        except Exception:
+            self._logger.debug("Stockfish engine initialized successfully")
+        except Exception as e:
+            self._logger.error(f"Failed to initialize Stockfish engine: {e}")
             self._engine = None
             raise
     
     def _cleanup(self):
         """Clean up the engine properly."""
+        if self._cleaned_up:
+            return
+            
+        self._logger.debug("Cleaning up Stockfish engine")
+        
         if self._engine and hasattr(self._engine, '_stockfish'):
             try:
+                # Send quit command if available
                 if hasattr(self._engine, 'send_quit_command'):
                     self._engine.send_quit_command()
-            except:
-                pass
+                    self._logger.debug("Sent quit command to Stockfish")
+            except Exception as e:
+                self._logger.warning(f"Error sending quit command: {e}")
+            
             try:
-                if self._engine._stockfish and self._engine._stockfish.poll() is None:
-                    self._engine._stockfish.terminate()
-                    self._engine._stockfish.wait(timeout=1.0)
-            except:
-                pass
+                # Terminate the process if still running
+                stockfish_process = getattr(self._engine, '_stockfish', None)
+                if stockfish_process and stockfish_process.poll() is None:
+                    stockfish_process.terminate()
+                    try:
+                        stockfish_process.wait(timeout=1.0)
+                        self._logger.debug("Stockfish process terminated gracefully")
+                    except:
+                        # Force kill if it doesn't terminate gracefully
+                        stockfish_process.kill()
+                        self._logger.warning("Forced kill of Stockfish process")
+            except Exception as e:
+                self._logger.warning(f"Error terminating Stockfish process: {e}")
+        
         self._engine = None
+        self._cleaned_up = True
+        self._logger.debug("Stockfish cleanup complete")
     
     def __getattr__(self, name):
         """Delegate all other attributes to the underlying engine."""
@@ -57,7 +122,11 @@ class SafeStockfish:
     
     def __del__(self):
         """Ensure cleanup on destruction."""
-        self._cleanup()
+        try:
+            self._cleanup()
+        except Exception:
+            # Suppress any exceptions in destructor
+            pass
 
 
 def create_ai(difficulty=8, stockfish_path=None):
@@ -75,6 +144,13 @@ def create_ai(difficulty=8, stockfish_path=None):
             - stockfish_path: path to binary
             - _engine: internal Stockfish instance
     """
+    logger = get_ai_logger()
+    
+    # Check if Stockfish is available
+    if not STOCKFISH_AVAILABLE:
+        logger.error("Stockfish package not available. Install with: pip install stockfish")
+        raise RuntimeError("Stockfish package not installed. Run: pip install stockfish")
+    
     if difficulty < 0 or difficulty > 20:
         difficulty = max(0, min(20, difficulty))  # Clamp to valid range
     
@@ -147,7 +223,30 @@ def get_ai_move(ai, game, time_limit=3.0):
     """
     try:
         engine = ai["_engine"]
+        engine_type = ai.get("engine_type", "stockfish")
         
+        # Handle different AI engine types
+        if engine_type == "random":
+            # Use random AI
+            move = engine.get_best_move(game, time_limit)
+            if move:
+                return {
+                    "success": True,
+                    "move": move
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Random AI could not generate move"
+                }
+        
+        # Handle Stockfish AI
+        if not BOARD_STATE_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Board state functions not available"
+            }
+            
         # Set the current position
         fen = get_board_fen(game["board"])
         engine.set_fen_position(fen)
@@ -208,8 +307,14 @@ def cleanup_ai(ai):
     """
     try:
         engine = ai.get("_engine")
-        if engine and isinstance(engine, SafeStockfish):
-            # Use the safe cleanup method
+        engine_type = ai.get("engine_type", "stockfish")
+        
+        if engine_type == "random":
+            # Random AI has cleanup method
+            if hasattr(engine, 'cleanup'):
+                engine.cleanup()
+        elif engine and isinstance(engine, SafeStockfish):
+            # Use the safe cleanup method for Stockfish
             engine._cleanup()
         
         return {

@@ -2,8 +2,10 @@
 
 from typing import Dict, Any, Optional
 from ..ai.stockfish_ai import get_ai_move
+from ..utils.cache import cached_evaluation
 
 
+@cached_evaluation(ttl_seconds=300.0)  # Cache for 5 minutes
 def get_position_evaluation(game, ai) -> Dict[str, Any]:
     """
     Get position evaluation using Stockfish engine.

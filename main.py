@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from src.utils.logger import get_main_logger, configure_logging, disable_external_logging
 from src.game.game_loop import create_game, make_move, get_current_player, get_game_status
 from src.ai.stockfish_ai import create_ai, get_ai_move, cleanup_ai
 from src.ui.console_interface import (
@@ -34,26 +35,76 @@ def parse_args():
                        help='Disable sound effects')
     parser.add_argument('--volume', '-v', type=float, default=0.7, 
                        help='Sound volume (0.0-1.0, default=0.7)')
+    parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], 
+                       default='INFO', help='Logging level (default=INFO)')
+    parser.add_argument('--quiet', '-q', action='store_true',
+                       help='Suppress all logging output')
+    parser.add_argument('--validator', choices=['python-chess', 'simple'], 
+                       default='python-chess', help='Move validator to use (default=python-chess)')
+    parser.add_argument('--ai-engine', choices=['stockfish', 'random'], 
+                       default='stockfish', help='AI engine to use (default=stockfish)')
+    parser.add_argument('--board-engine', choices=['python-chess', 'simple'], 
+                       default='python-chess', help='Board engine to use (default=python-chess)')
+    parser.add_argument('--log-file', type=str, help='Log to file (e.g., --log-file pychessbot.log)')
     return parser.parse_args()
 
 
-def setup_game(difficulty=8):
+def setup_game(difficulty=8, ai_engine='stockfish'):
     """
     Set up a new chess game with AI opponent.
     
     Args:
         difficulty (int): AI difficulty level
+        ai_engine (str): AI engine to use ('stockfish' or 'random')
     
     Returns:
         tuple: (game_state, ai_instance)
     """
+    logger = get_main_logger()
+    
     try:
         game = create_game()
-        ai = create_ai(difficulty=difficulty)
+        
+        if ai_engine == 'random':
+            # Use random AI
+            from src.alternatives.random_ai import RandomChessAI
+            ai_instance = RandomChessAI()
+            ai_instance.initialize(difficulty=difficulty)
+            ai = {
+                "engine_type": "random",
+                "difficulty": difficulty,
+                "_engine": ai_instance
+            }
+            logger.info("Using Random AI engine")
+        else:
+            # Try Stockfish first
+            ai = create_ai(difficulty=difficulty)
+            logger.info("Using Stockfish AI engine")
+            
         return game, ai
+        
     except Exception as e:
-        print(f"Error setting up game: {e}")
-        print("Make sure Stockfish is installed and accessible.")
+        logger.error(f"Error setting up {ai_engine} AI: {e}")
+        
+        if ai_engine != 'random':
+            # If Stockfish failed, try falling back to random AI
+            logger.warning("Stockfish failed, falling back to Random AI")
+            try:
+                from src.alternatives.random_ai import RandomChessAI
+                ai_instance = RandomChessAI()
+                ai_instance.initialize(difficulty=difficulty)
+                ai = {
+                    "engine_type": "random",
+                    "difficulty": difficulty,
+                    "_engine": ai_instance
+                }
+                logger.info("Successfully created Random AI fallback")
+                return game, ai
+            except Exception as fallback_error:
+                logger.error(f"Random AI fallback also failed: {fallback_error}")
+        
+        # If everything fails, exit
+        logger.error("All AI options failed. Exiting.")
         sys.exit(1)
 
 
@@ -289,12 +340,20 @@ def main():
     # Parse command line arguments
     args = parse_args()
     
+    # Configure logging
+    configure_logging(level=args.log_level, quiet=args.quiet, log_file=args.log_file)
+    disable_external_logging()
+    logger = get_main_logger()
+    
+    logger.info("Starting PyChessBot")
+    logger.debug(f"Arguments: difficulty={args.difficulty}, color={args.human_color}, gui={args.gui}, sound={args.sound}")
+    
     # Initialize sound system based on command line arguments
     volume = max(0.0, min(1.0, args.volume))  # Clamp volume to valid range
     initialize_sound_system(enabled=args.sound, volume=volume)
     
     # Setup game
-    game, ai = setup_game(difficulty=args.difficulty)
+    game, ai = setup_game(difficulty=args.difficulty, ai_engine=args.ai_engine)
     
     if args.dual:
         # Use dual mode: console interface with GUI visualization

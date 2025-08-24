@@ -92,7 +92,23 @@ PyChessBot is now an **advanced chess learning platform** with:
 - **Production ready**: Robust error handling and resource management
 - **Educational focus**: Perfect for chess learning and improvement
 
-## Future Enhancement Opportunities
+## Current Quality Enhancement Tasks (One-Shot Session)
+
+### Code Quality Improvements (In Progress)
+- **Structured logging system** - Replace print statements with proper logging
+- **Test separation** - Separate integration tests from unit tests
+- **Monkey-patch investigation** - Review bug fix for game quitting
+- **Main file refactoring** - Assess if main.py is too large and should be split
+- **Code smell audit** - Identify and fix structural issues and security vulnerabilities
+- **Performance analysis** - Profile and optimize bottlenecks
+- **Pluggable architecture** - Design component switching system for validation, board state, AI
+
+### Alternative Implementation Components
+- **Alternative chess move validator** - Basic implementation as CLI option
+- **Alternative board state memory** - Basic implementation as CLI option  
+- **Alternative AI algorithm** - Basic implementation as CLI option
+
+### Future Enhancement Opportunities
 
 ### Near-term Improvements  
 - **Fix auto-evaluation updates** - Ensure evaluation updates automatically after each move
@@ -114,7 +130,6 @@ PyChessBot is now an **advanced chess learning platform** with:
 ### Code Quality Enhancements
 - **Type hints** - Full mypy type checking
 - **Code coverage** - Achieve 95%+ test coverage
-- **Performance profiling** - Optimize critical paths
 - **Documentation** - API docs and user manual
 - **CI/CD pipeline** - Automated testing and releases
 

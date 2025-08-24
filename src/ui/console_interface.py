@@ -151,8 +151,16 @@ def show_legal_moves(game):
 
 
 def clear_screen():
-    """Clear the console screen."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+    """Clear the console screen using secure method."""
+    import subprocess
+    try:
+        if os.name == 'nt':
+            subprocess.run(['cls'], shell=True, check=False)
+        else:
+            subprocess.run(['clear'], check=False)
+    except (subprocess.SubprocessError, OSError):
+        # Fallback: print newlines if clear command fails
+        print('\n' * 50)
 
 
 def show_help():
