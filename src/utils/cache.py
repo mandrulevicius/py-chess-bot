@@ -65,6 +65,10 @@ def cached_evaluation(ttl_seconds: float = 300.0):
     def decorator(func):
         @wraps(func)
         def wrapper(game, ai, *args, **kwargs):
+            # Handle invalid game state - skip caching
+            if not game or not isinstance(game, dict) or 'board' not in game:
+                return func(game, ai, *args, **kwargs)
+            
             # Create cache key from FEN position
             from ..game.board_state import get_board_fen
             fen = get_board_fen(game['board'])

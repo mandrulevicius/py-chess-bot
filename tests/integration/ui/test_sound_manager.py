@@ -191,7 +191,7 @@ class TestSoundFiles:
     
     def test_sound_files_exist(self):
         """Test that generated sound files exist."""
-        sounds_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'sounds')
+        sounds_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'assets', 'sounds')
         sounds_dir = os.path.normpath(sounds_dir)
         
         expected_files = [

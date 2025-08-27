@@ -134,10 +134,10 @@ def test_clear_screen():
     """Test screen clearing functionality."""
     from src.ui.console_interface import clear_screen
     
-    # Just test it doesn't crash - hard to test actual clearing
-    with patch('os.system') as mock_system:
+    # Test that subprocess.run is called, not os.system
+    with patch('subprocess.run') as mock_subprocess:
         clear_screen()
-        mock_system.assert_called()
+        mock_subprocess.assert_called()
 
 
 def test_display_welcome_message():

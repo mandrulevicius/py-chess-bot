@@ -1,3 +1,5 @@
+# Stockfish binary for tests
+stockfish-bin
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

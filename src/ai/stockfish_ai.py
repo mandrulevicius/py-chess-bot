@@ -157,11 +157,13 @@ def create_ai(difficulty=8, stockfish_path=None):
     # Try different Stockfish paths
     possible_paths = [
         stockfish_path,
+        "/workspace/PyChessBot/stockfish-bin",
         "stockfish",
         "c:/programs/stockfish/stockfish-windows-x86-64-avx2.exe",
         "c:/programs/stockfish/stockfish.exe",
         "c:/programs/stockfish/stockfish"
     ] if stockfish_path else [
+        "/workspace/PyChessBot/stockfish-bin",
         "stockfish",
         "c:/programs/stockfish/stockfish-windows-x86-64-avx2.exe",
         "c:/programs/stockfish/stockfish.exe", 
