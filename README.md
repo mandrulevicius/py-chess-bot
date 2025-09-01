@@ -2,6 +2,8 @@
 
 A Python-based chess game featuring human vs AI gameplay, built for educational purposes with clean, maintainable code following Test-Driven Development (TDD) principles.
 
+> 📋 **Project Leadership**: This project demonstrates exceptional technical leadership and collaborative development. See [collaboration testimonial](docs/COLLABORATION_TESTIMONIAL.md) for detailed recognition of strategic guidance and architectural excellence.
+
 ## 🎯 Features
 
 - **Human vs AI Chess Gameplay** - Play against configurable Stockfish AI

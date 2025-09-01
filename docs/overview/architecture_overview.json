@@ -1,0 +1,154 @@
+{
+  "summary": {
+    "project_name": "PyChessBot",
+    "project_type": "Educational chess game with AI opponent",
+    "last_analyzed": "2025-09-01",
+    "entry_points": [
+      "main.py"
+    ],
+    "core_utilities": [
+      "board_state",
+      "game_loop",
+      "sound_manager"
+    ],
+    "development_hotspots": [
+      "pygame_interface",
+      "learning_gui",
+      "main.py"
+    ],
+    "component_categories": {
+      "main": 1,
+      "game": 5,
+      "ai": 2,
+      "ui": 4,
+      "analysis": 3,
+      "utils": 2,
+      "core": 1
+    },
+    "key_patterns": [
+      "Layered architecture (UI \u2192 Game Logic \u2192 AI \u2192 Utils)",
+      "No circular dependencies detected",
+      "Dependency injection for pluggable AI engines",
+      "TDD-driven development with comprehensive test suite",
+      "Decoupled UI design (console + GUI)",
+      "Immutable game state with copy semantics",
+      "Resource management with safe cleanup patterns"
+    ],
+    "current_focus": "GUI and learning features development",
+    "recent_activity_context": {
+      "high_activity_files": {
+        "pygame_interface": "1.0 activity - Primary GUI development",
+        "learning_gui": "0.9 activity - Learning feature components",
+        "main": "0.9 activity - Core orchestration improvements"
+      },
+      "stable_components": {
+        "move_parser": "Core chess notation parsing - stable",
+        "move_validator": "Chess rules validation - stable",
+        "board_state": "Chess board management - foundational"
+      }
+    }
+  },
+  "insights": [
+    {
+      "pattern": "Central Orchestration",
+      "description": "main.py acts as central orchestrator with 10 dependencies",
+      "evidence": [
+        "Single entry point pattern",
+        "Imports all major subsystems",
+        "Handles CLI argument parsing",
+        "Manages game loop and UI selection"
+      ],
+      "impact": "Easy to understand flow, but main.py could become large over time"
+    },
+    {
+      "pattern": "Core Dependency Hub",
+      "description": "board_state.py is the most depended-on component (5 dependents)",
+      "evidence": [
+        "Used by game_loop, move_validator, stockfish_ai, position_evaluator, pygame_interface",
+        "Provides chess board representation",
+        "Handles FEN notation and move application",
+        "Built on python-chess library"
+      ],
+      "impact": "Critical component - changes here affect many files"
+    },
+    {
+      "pattern": "Pluggable AI Architecture",
+      "description": "AI engines use abstract interfaces for swappability",
+      "evidence": [
+        "ChessAI interface in core/interfaces.py",
+        "stockfish_ai.py and random_ai.py both implement interface",
+        "Dynamic importing in main.py based on availability",
+        "ComponentFactory pattern for registration"
+      ],
+      "impact": "Easy to add new AI engines without code changes"
+    },
+    {
+      "pattern": "Sound System Integration",
+      "description": "Comprehensive sound effects with smart move analysis",
+      "evidence": [
+        "sound_manager.py used by 3 different UI components",
+        "move_analyzer.py provides chess context for sound selection",
+        "9 different sound effects with priority system",
+        "Graceful degradation when sound unavailable"
+      ],
+      "impact": "Rich user experience, well-integrated across interfaces"
+    },
+    {
+      "pattern": "Learning Features Addition",
+      "description": "Recent addition of analysis and learning components",
+      "evidence": [
+        "analysis/ package with position_evaluator, move_history, solo_mode",
+        "learning_gui.py for GUI integration",
+        "High recent activity (0.8-0.9) in learning components",
+        "Caching system for performance"
+      ],
+      "impact": "Expanding beyond basic chess into educational features"
+    }
+  ],
+  "dependency_flows": {
+    "critical_paths": [
+      "main \u2192 game_loop \u2192 board_state \u2192 move_validator \u2192 move_parser",
+      "main \u2192 stockfish_ai \u2192 logger",
+      "main \u2192 pygame_interface \u2192 learning_gui"
+    ],
+    "bottleneck_analysis": {
+      "board_state": {
+        "dependents": 5,
+        "risk": "High - core chess logic",
+        "mitigation": "Well-tested, stable API"
+      },
+      "game_loop": {
+        "dependents": 3,
+        "risk": "Medium - game orchestration",
+        "mitigation": "Clear separation of concerns"
+      }
+    },
+    "leaf_components": [
+      "move_parser",
+      "move_analyzer",
+      "sound_manager",
+      "learning_gui",
+      "move_history",
+      "solo_mode",
+      "logger",
+      "interfaces"
+    ]
+  },
+  "development_context": {
+    "methodology": "Test Driven Development (TDD) with red-green-refactor cycles",
+    "testing_approach": "Comprehensive test suite with pytest",
+    "code_style": "Procedural over class-based where appropriate",
+    "external_dependencies": [
+      "python-chess - core chess logic and validation",
+      "pygame - GUI interface and sound system",
+      "stockfish - chess engine integration (optional)"
+    ],
+    "recent_commits_themes": [
+      "GUI improvements and learning features",
+      "Sound system implementation",
+      "Caching and performance optimization",
+      "Test coverage and code cleanup"
+    ]
+  },
+  "generated_at": "2025-09-01T11:46:49.178690"
+}
